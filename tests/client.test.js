@@ -68,11 +68,11 @@ test('controller reports a failed save and retains the last persisted snapshot',
       throw new Error('Disk full');
     } },
     render: (snapshot) => rendered.push(snapshot), setBusy: () => {},
-    showError: (error) => errors.push(error.message), showSuccess: () => assert.fail('false success'),
+    showError: (error, source) => errors.push({ message: error.message, source }), showSuccess: () => assert.fail('false success'),
   });
   await controller.refresh();
   assert.equal(await controller.mutate({ type: 'training.setCompletion' }), false);
-  assert.deepEqual(errors, ['Disk full']);
+  assert.deepEqual(errors, [{ message: 'Disk full', source: 'training.setCompletion' }]);
   assert.equal(rendered.length, 1);
   assert.equal(rendered[0].today.completed, false);
 });

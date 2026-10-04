@@ -11,6 +11,30 @@ export function puzzleNoun(count) {
   return 'задач';
 }
 
+export function createPageFeedback({ errorBox, notice }) {
+  let errorSource = null;
+  return {
+    showError(error, source = 'external') {
+      errorSource = source;
+      notice.hidden = true;
+      errorBox.textContent = `${error.message || 'Не удалось открыть журнал.'} Нажмите «Обновить», чтобы повторить. Если ошибка сохраняется, проверьте доступность хранилища Firefox.`;
+      errorBox.hidden = false;
+    },
+    showSuccess(message) {
+      errorSource = null;
+      errorBox.hidden = true;
+      notice.textContent = message;
+      notice.hidden = false;
+    },
+    recoveredSnapshot() {
+      if (errorSource === 'training.getSnapshot') {
+        errorSource = null;
+        errorBox.hidden = true;
+      }
+    },
+  };
+}
+
 export function mountTrainingPage(renderExtra = () => {}) {
   const client = createClient();
   const completion = document.getElementById('completion');
@@ -29,16 +53,11 @@ export function mountTrainingPage(renderExtra = () => {}) {
     for (const button of document.querySelectorAll('[data-write-control]')) button.disabled = busy || externalBusy || !snapshot;
     card.setAttribute('aria-busy', String(busy));
   }
-  function showError(error) {
-    notice.hidden = true;
+  const feedback = createPageFeedback({ errorBox, notice });
+  const { showSuccess } = feedback;
+  function showError(error, source) {
     if (!snapshot) document.getElementById('today-status').textContent = 'Журнал пока недоступен';
-    errorBox.textContent = `${error.message || 'Не удалось открыть журнал.'} Нажмите «Обновить», чтобы повторить. Если ошибка сохраняется, проверьте доступность хранилища Firefox.`;
-    errorBox.hidden = false;
-  }
-  function showSuccess(message) {
-    errorBox.hidden = true;
-    notice.textContent = message;
-    notice.hidden = false;
+    feedback.showError(error, source);
   }
   function scheduleBoundary() {
     clearTimeout(timer);
@@ -55,6 +74,7 @@ export function mountTrainingPage(renderExtra = () => {}) {
     showSuccess,
     render(value) {
       snapshot = value;
+      feedback.recoveredSnapshot();
       document.getElementById('username').textContent = value.profile.username;
       const date = document.getElementById('today-date');
       date.textContent = formatDay(value.today.date);

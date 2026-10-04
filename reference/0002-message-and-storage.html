@@ -10,9 +10,11 @@
   <header><p class="eyebrow">Lichess Training · Памятка</p><h1>Сообщение → сохранение → ответ</h1></header>
   <section class="card"><h2>Путь в проекте</h2>
     <table><thead><tr><th>Файл</th><th>Обязанность</th></tr></thead><tbody>
-      <tr><td><code>ui/dashboard.js</code></td><td>Прочитать дату экрана, отправить команду, показать ответ</td></tr>
+      <tr><td><code>ui/page.js</code></td><td>Общая карточка popup/dashboard: дата, команда выполнения и ответ</td></tr>
+      <tr><td><code>ui/dashboard.js</code></td><td>История недели и резервные копии основного экрана</td></tr>
       <tr><td><code>ui/client.js</code></td><td>Отправить сообщение и распаковать успех/ошибку</td></tr>
-      <tr><td><code>background.js</code></td><td>Проверить отправителя и передать команду сервису</td></tr>
+      <tr><td><code>background.js</code></td><td>Создать сервис и зарегистрировать обработчик сообщений</td></tr>
+      <tr><td><code>background-transport.js</code></td><td>Проверить отправителя и передать команду сервису</td></tr>
       <tr><td><code>app/training.js</code></td><td>Выбрать день, выполнить правило, сохранить изменение</td></tr>
       <tr><td><code>core/training-engine.js</code></td><td>Правила дат, снимка и проверки резервной копии</td></tr>
       <tr><td><code>data/repository.js</code></td><td>Читать журнал и атомарно записывать транзакцию</td></tr>

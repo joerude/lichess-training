@@ -39,7 +39,7 @@ export function createTrainingController({ client, render, setBusy, showError, s
         if (success) showSuccess(success);
         return true;
       } catch (error) {
-        showError(error);
+        showError(error, command.type);
         return false;
       } finally {
         tasks -= 1;

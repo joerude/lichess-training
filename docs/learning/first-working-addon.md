@@ -8,8 +8,9 @@
 flowchart LR
   M[manifest.json] --> P[popup.html + popup.js]
   M --> B[background.js]
-  P -->|сообщение| B
-  D[dashboard.html + dashboard.js] -->|сообщение| B
+  P --> S[ui/page.js — общая карточка дня]
+  D[dashboard.html + dashboard.js] --> S
+  S -->|ui/client.js — сообщение| B
   B --> T[app/training.js]
   T --> C[core/training-engine.js]
   T --> R[data/repository.js]
@@ -18,7 +19,7 @@ flowchart LR
 
 `manifest.json` сообщает Firefox, какую кнопку и какую фоновую страницу создать. `popup.html` открывается при нажатии на кнопку расширения; popup закрывается при переходе к другой вкладке. Основной экран живёт во вкладке и поэтому удобнее для истории и резервных копий.
 
-Страницы отправляют команды через `browser.runtime.sendMessage`. `background.js` передаёт их сервису тренировок. Сервис выбирает день в часовом поясе программы и сохраняет изменения в IndexedDB. Поэтому закрытие popup не стирает отметку. Фоновая страница может выгружаться из памяти: источником состояния остаётся база.
+Общий обработчик карточки дня находится в `ui/page.js`; его подключают и popup, и dashboard. Страницы отправляют команды через `ui/client.js` и `browser.runtime.sendMessage`. `background.js` регистрирует обработчик из `background-transport.js`, который передаёт команду сервису тренировок. Сервис выбирает день в часовом поясе программы и сохраняет изменения в IndexedDB. Поэтому закрытие popup не стирает отметку. Фоновая страница может выгружаться из памяти: источником состояния остаётся база.
 
 В этой маленькой версии база хранит один журнал. Когда появятся тысячи партий, у них будут отдельные записи и индексы; не нужно включать большой датасет в этот журнал или пакет расширения.
 
@@ -34,7 +35,7 @@ flowchart LR
 
 ## Упражнение 2: проследи команду
 
-Найди обработчик кнопки выполнения в `extension/ui/dashboard.js`. Проследи путь от `training.setCompletion` через `extension/ui/client.js`, `extension/background.js` и `extension/app/training.js` к `extension/data/repository.js`.
+Найди обработчик кнопки выполнения в `extension/ui/page.js`. Проследи путь от `training.setCompletion` через `extension/ui/client.js`, `extension/background-transport.js` (подключён из `background.js`) и `extension/app/training.js` к `extension/data/repository.js`. `dashboard.js` дополняет общую карточку историей и резервными копиями.
 
 Ответь своими словами:
 
