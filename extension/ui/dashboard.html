@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Шахматный журнал · sebajun777</title>
+  <link rel="icon" href="../icons/training.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="dashboard.js"></script>
+</head>
+<body>
+  <div class="dashboard-shell">
+    <header class="app-header">
+      <a class="brand" href="dashboard.html"><img src="../icons/training.svg" width="38" height="38" alt=""><span>Шахматный журнал</span></a>
+      <div class="header-meta"><span class="local-label"><span aria-hidden="true">●</span> Локальный журнал</span><span id="username">sebajun777</span></div>
+    </header>
+    <main>
+      <div class="page-heading"><div><p class="eyebrow">ПРАКТИКА КАЖДЫЙ ДЕНЬ</p><h1>Время сделать ход.</h1><p class="muted">Одна небольшая задача. Ещё один день за доской.</p></div><button id="refresh" class="button button-quiet" type="button">Обновить</button></div>
+      <div id="error" class="message message-error" role="alert" hidden></div>
+      <p id="notice" class="message message-success" role="status" hidden></p>
+      <div class="overview-grid">
+        <section id="today-card" class="card today-card" aria-labelledby="today-heading" aria-busy="true">
+          <div class="card-top"><p class="eyebrow" id="today-heading">СЕГОДНЯ</p><time id="today-date">Загрузка…</time></div>
+          <div class="task-layout"><div><p class="task-target"><span id="target">—</span> <span class="target-unit">задач</span></p><h2>Ежедневная тактика</h2><p class="muted task-copy">Решите задачи на Lichess, затем отметьте тренировку здесь.</p></div><div class="chess-art" aria-hidden="true"><span>♘</span></div></div>
+          <p id="today-status" class="task-status" role="status">Загружаем ваш журнал…</p>
+          <div class="task-actions"><a class="button button-primary" href="https://lichess.org/training" target="_blank" rel="noopener noreferrer">Открыть задачи <span aria-hidden="true">↗</span><span class="sr-only"> (в новой вкладке)</span></a><button id="completion" class="button button-secondary" type="button" aria-pressed="false" disabled>Отметить выполнение</button></div>
+          <p class="caption">Отметка вручную · День по времени Бишкека (UTC+6)</p>
+        </section>
+        <aside class="summary-stack">
+          <section class="card total-card" aria-labelledby="total-heading"><p class="eyebrow" id="total-heading">ВЫПОЛНЕНО ДНЕЙ</p><p id="completed-days" class="total-number">—</p><p class="muted">За всё время в вашем журнале</p><div class="fine-rule"></div><p class="caption">Каждая отметка — день, когда вы уделили время шахматам.</p></section>
+          <section class="practice-note"><span class="note-symbol" aria-hidden="true">♙</span><div><h2>Начните с малого</h2><p>Это стартовое упражнение для привычки, а не персональная рекомендация по тренировкам.</p></div></section>
+        </aside>
+      </div>
+      <section class="card week-card" aria-labelledby="week-heading"><div class="section-heading"><div><p class="eyebrow">РИТМ ПРАКТИКИ</p><h2 id="week-heading">Последние семь дней</h2></div><p id="week-summary" class="muted">Загрузка…</p></div><ol id="week" class="week-grid" aria-label="Выполнение за последние семь дней"></ol><p class="caption week-legend"><span>✓ Выполнено</span><span>○ Не отмечено</span><span>— До начала программы</span></p></section>
+      <section class="card backup-card" aria-labelledby="backup-heading"><div><p class="eyebrow">ВАШИ ДАННЫЕ</p><h2 id="backup-heading">Резервная копия</h2><p class="muted">Журнал хранится в этом Firefox. Сохраните копию, чтобы перенести его или восстановить позже.</p></div><div class="backup-actions"><button id="export" class="button button-secondary" type="button" data-write-control disabled>Скачать JSON</button><button id="restore" class="button button-quiet" type="button" data-write-control disabled>Восстановить из файла</button><input id="backup-file" type="file" accept=".json,application/json" hidden></div></section>
+    </main>
+    <footer class="app-footer"><span>sebajun777 · Личная шахматная практика</span><span>Данные остаются в браузере</span></footer>
+  </div>
+  <dialog id="restore-dialog" class="restore-dialog" aria-labelledby="restore-heading" aria-describedby="restore-description"><div class="dialog-body"><p class="eyebrow">ВОССТАНОВЛЕНИЕ ЖУРНАЛА</p><h2 id="restore-heading">Проверьте резервную копию</h2><p id="restore-description" class="muted">Текущий журнал будет полностью заменён. Сначала скачайте его копию, если хотите сохранить обе версии.</p><dl id="backup-preview" class="backup-preview"></dl><p class="caption">Файл будет проверен перед сохранением. Журнал заменится только после успешной проверки.</p><p id="restore-error" class="message message-error" role="alert" hidden></p><div class="dialog-actions"><button id="cancel-restore" class="button button-secondary" type="button">Отмена</button><button id="replace" class="button button-primary" type="button">Заменить журнал</button></div></div></dialog>
+</body>
+</html>
