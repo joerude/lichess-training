@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Урок 03 · Импорт без повторов</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+  <script src="../assets/lesson.js" defer></script>
+</head>
+<body><main>
+  <nav aria-label="Навигация"><a href="0002-persisted-training.html">Урок 02</a><a href="#practice">Практика</a><a href="#recall">Проверить понимание</a><a href="../reference/0003-history-import.html">Памятка</a></nav>
+  <header><p class="eyebrow">Lichess Training · Firefox · Урок 03</p><h1>Импорт без повторов</h1>
+    <p class="lead">Загрузи свои партии дважды и проверь, почему число игр не удвоилось.</p>
+    <div class="meta"><span>Ориентир: 15 минут</span><span>Твой датасет</span><span>Проверка → сохранение</span></div>
+  </header>
+  <section class="callout"><p><strong>Результат:</strong> умеешь найти путь импортируемой партии от файла до записи по game ID и объяснить, почему предварительный просмотр ещё не меняет базу.</p></section>
+  <section class="card"><h2>Одна строка — одна партия</h2>
+    <p>NDJSON содержит отдельный JSON-объект на каждой непустой строке. <code>data/dataset-import.js</code> читает строки, а <code>data/normalize-game.js</code> оставляет нужные поля завершённых rated standard партий твоего профиля. Партии другого профиля и повреждённые записи дают ошибку до сохранения.</p>
+    <pre><code>Файл → проверка и нормализация → предварительный отчёт
+Кнопка «Сохранить историю» → транзакция IndexedDB
+  game ID отсутствует → добавить
+  game ID уже есть → оставить существующую запись</code></pre>
+    <p>Одинаковые ID внутри файла проверяются отдельно: одинаковая нормализованная запись — повтор, противоречащая — ошибка. В базе <code>games</code> ключ записи — <code>id</code>. Весь пакет записывается одной транзакцией; ошибка отменяет пакет. <a href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB">MDN: ключи и транзакции IndexedDB</a>.</p>
+  </section>
+  <section id="practice" class="card"><h2>Предскажи и проверь</h2><ol>
+    <li>Перезагрузи addon через <strong>Reload</strong> в <code>about:debugging</code>. Открой основной экран из popup.</li>
+    <li>Отметь тренировку, если сегодня уже выполнил задание; запомни её статус.</li>
+    <li>В разделе истории выбери <code>/home/joerude/Desktop/lichess_dataset/games/games_raw.ndjson</code> и необязательный <code>rating_history.json</code> из корня датасета.</li>
+    <li>Нажми <strong>Проверить файлы</strong>. Ожидается: 6 430 строк, 6 429 уникальных партий, один повтор и 474 точки рейтинга при выборе обоих файлов. До сохранения таблица не меняется.</li>
+    <li>Нажми <strong>Сохранить историю</strong>. Сверь: Bullet — 5 917, Blitz — 345, Rapid — 167. Переключи график между контролями и Puzzles.</li>
+    <li>Перед повторной загрузкой запиши прогноз: сколько партий добавится? Повтори проверку и сохранение. Ожидается 0 новых и 6 429 уже существующих.</li>
+    <li>Закрой и открой вкладку снова. Проверь историю и прежний статус сегодняшней тренировки.</li>
+  </ol><p>Этот набор заканчивается 15 марта 2026 года. График показывает прошлую историю; новые партии пока нужно импортировать из файла.</p></section>
+  <section class="card"><h2>Найди правило в коде</h2>
+    <p>Начни с <code>history.import</code> в <code>extension/app/history.js</code>, затем открой <code>importHistory</code> в <code>extension/data/repository.js</code>. Найди проверку существующего game ID и момент, когда операция сообщает об успехе.</p>
+    <p>Теперь измени заголовок секции истории в <code>extension/ui/dashboard.html</code>, сохрани файл и нажми Reload. Проверь новый текст и сохранённое число партий. Это упражнение показывает, что HTML страницы и данные базы живут отдельно.</p>
+  </section>
+  <section id="recall" class="card"><h2>Вспомни без кода</h2>
+    <form class="quiz" data-answer="id" data-correct="Да. Проверяется game ID; существующая запись остаётся в базе, отсутствующая добавляется." data-incorrect="Название файла не определяет уникальность партии. Проверяется её game ID в базе games.">
+      <fieldset><legend>Что защищает историю от удвоения после повторного импорта?</legend>
+        <label><input type="radio" name="dedup" value="filename"> Совпадение имени файла</label>
+        <label><input type="radio" name="dedup" value="id"> Проверка game ID в базе</label>
+      </fieldset><button type="submit">Проверить</button><p class="feedback" aria-live="polite"></p>
+    </form>
+    <p>Объясни своими словами: что изменится после предварительного просмотра, что после сохранения, что останется при ошибке в последней строке?</p>
+    <details><summary>Подсказка после попытки</summary><p>Просмотр меняет только интерфейс. Успешное сохранение добавляет отсутствующие партии и сохраняет выбранные рейтинги. Ошибка файла обнаруживается до транзакции, поэтому прежняя база сохраняется.</p></details>
+  </section>
+  <section class="card"><h2>На следующем занятии</h2><p>Без чтения кода восстанови путь файл → нормализация → транзакция. Затем можно перейти к API: получать новые партии и повторно проверять уже знакомые ID.</p><p>Резервная копия в этой версии содержит отметки тренировок. Историю партий можно заново импортировать из исходного датасета.</p></section>
+  <footer><p><a href="../reference/0003-history-import.html">Памятка по импорту</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB">MDN: IndexedDB</a></p></footer>
+</main></body></html>

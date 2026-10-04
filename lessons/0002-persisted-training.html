@@ -23,7 +23,7 @@
   <section class="callout"><p><strong>Результат:</strong> можешь показать, где живёт интерфейс, где принимается команда и где сохраняется отметка. Основная практика — маленькое изменение с наблюдаемым результатом.</p></section>
   <section class="card">
     <h2>Три места, три обязанности</h2>
-    <p>Popup и dashboard подключают общий обработчик из <code>ui/page.js</code>. Он отправляет <code>training.setCompletion</code> через <code>ui/client.js</code>. <code>background.js</code> регистрирует обработчик из <code>background-transport.js</code>, который вызывает сервис <code>app/training.js</code>. Сервис сохраняет журнал через <code>data/repository.js</code> в IndexedDB.</p>
+    <p>Popup и dashboard подключают общий обработчик из <code>ui/page.js</code>. Он отправляет <code>training.setCompletion</code> через <code>ui/client.js</code>. <code>background.js</code> регистрирует обработчик из <code>background-transport.js</code>; маршрут <code>app/services.js</code> направляет команду в <code>app/training.js</code>. Сервис сохраняет журнал через <code>data/repository.js</code> в IndexedDB.</p>
     <pre><code>Кнопка во вкладке
   → сообщение с датой и completed
   → сервис в фоновой странице
@@ -56,7 +56,7 @@
     <p>Теперь найди <code>training.setCompletion</code> в <code>extension/ui/page.js</code> и проследи до транзакции. Объясни своими словами, зачем команда содержит дату и почему успех показывается после сохранения.</p>
     <details><summary>Подсказка после попытки</summary><p>Дата защищает от клика в старом экране после полуночи. Завершившаяся транзакция подтверждает, что запись сохранена; изменение текста кнопки само по себе этого не гарантирует.</p></details>
   </section>
-  <section class="card"><h2>Следующая встреча</h2><p>Завтра без чтения кода назови путь команды из памяти. Напиши мне, что удалось проверить и что осталось непонятным: разберём вместе. Следующий этап проекта — применить настоящую историю из твоего lichess_dataset.</p></section>
+  <section class="card"><h2>Следующая встреча</h2><p>Завтра без чтения кода назови путь команды из памяти. Следующее упражнение — <a href="0003-history-import.html">импорт настоящей истории из твоего lichess_dataset</a>.</p></section>
   <footer><p>Основной источник: <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/sendMessage">Mozilla: runtime.sendMessage</a>. <a href="../reference/0002-message-and-storage.html">Краткая памятка</a>.</p></footer>
 </main></body>
 </html>

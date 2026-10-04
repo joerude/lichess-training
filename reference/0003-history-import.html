@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Памятка · Импорт истории</title><link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body><main>
+  <nav aria-label="Навигация"><a href="../lessons/0003-history-import.html">Урок 03</a><a href="0002-message-and-storage.html">Сообщения и хранение</a></nav>
+  <header><p class="eyebrow">Lichess Training · Памятка</p><h1>Файл → история → статистика</h1></header>
+  <section class="card"><h2>Путь команды</h2><table><thead><tr><th>Файл</th><th>Обязанность</th></tr></thead><tbody>
+    <tr><td><code>ui/history.js</code></td><td>Выбор файлов, предварительная проверка и явное сохранение</td></tr>
+    <tr><td><code>app/services.js</code></td><td>Передать training.* или history.* нужному сервису</td></tr>
+    <tr><td><code>app/history.js</code></td><td>Проверить пакет, сохранить его и вернуть статистику</td></tr>
+    <tr><td><code>data/dataset-import.js</code></td><td>Прочитать NDJSON и JSON рейтингов; найти повторы в файле</td></tr>
+    <tr><td><code>data/normalize-game.js</code></td><td>Проверить профиль и превратить исходную партию в компактную запись</td></tr>
+    <tr><td><code>data/repository.js</code></td><td>Обновить схему базы и атомарно добавить отсутствующие ID</td></tr>
+    <tr><td><code>core/history-statistics.js</code></td><td>Рассчитать игры, результаты, покрытие анализом и рейтинг</td></tr>
+    <tr><td><code>ui/history-view.js</code></td><td>Показать таблицу и график SVG</td></tr>
+  </tbody></table></section>
+  <section class="card"><h2>Правила</h2><ul>
+    <li>Просмотр не записывает данные; сохранение начинается отдельной кнопкой.</li>
+    <li>В файле одинаковые нормализованные game ID объединяются, противоречащие отклоняются.</li>
+    <li>В базе импорт добавляет отсутствующие ID; существующая партия сохраняется как была.</li>
+    <li>Схема IndexedDB версии 2 добавляет games, ratings и historyMeta, сохраняя journal.</li>
+    <li>Месяц Lichess rating_history начинается с 0: март записан числом 2.</li>
+    <li>Старый компьютерный анализ не отмечает самостоятельную тренировку.</li>
+    <li>Backup v1 содержит журнал тренировок; партии хранятся отдельно.</li>
+  </ul></section>
+  <footer><p><a href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB">MDN: версии базы, ключи и транзакции</a></p></footer>
+</main></body></html>

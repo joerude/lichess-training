@@ -24,6 +24,8 @@
 - [Mozilla: web-ext](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/)
   Проверка manifest, временный запуск и упаковка addon; используется как инструмент разработки.
 
+Для урока 03: [MDN: Using IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB) — обновление схемы, ключи и завершение/отмена транзакции. Формат партии: [Lichess GameJson](https://github.com/lichess-org/api/blob/master/doc/specs/schemas/GameJson.yaml).
+
 ## Wisdom (Communities)
 
 Потребность в обсуждениях с сообществом пока не определена.

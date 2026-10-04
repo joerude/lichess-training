@@ -11,12 +11,27 @@ export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lic
           reject(new Error('IndexedDB storage is unavailable.'));
           return;
         }
-        const request = indexedDB.open(name, 1);
-        request.onupgradeneeded = () => request.result.createObjectStore(storeName);
+        const request = indexedDB.open(name, 2);
+        let blocked = false;
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName);
+          if (!db.objectStoreNames.contains('games')) {
+            const games = db.createObjectStore('games', { keyPath: 'id' });
+            games.createIndex('speed', 'speed');
+            games.createIndex('createdAt', 'createdAt');
+          }
+          if (!db.objectStoreNames.contains('ratings')) db.createObjectStore('ratings', { keyPath: 'name' });
+          if (!db.objectStoreNames.contains('historyMeta')) db.createObjectStore('historyMeta');
+        };
         request.onerror = () => reject(request.error);
-        request.onblocked = () => reject(new Error('IndexedDB storage is blocked by another open connection.'));
+        request.onblocked = () => {
+          blocked = true;
+          reject(new Error('Обновление базы заблокировано. Закройте другие страницы расширения и повторите попытку.'));
+        };
         request.onsuccess = () => {
           const database = request.result;
+          if (blocked) { database.close(); return; }
           database.onversionchange = () => {
             database.close();
             opening = undefined;
@@ -75,5 +90,68 @@ export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lic
     });
   }
 
-  return { read, transact };
+  async function readHistory() {
+    const database = await open();
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction(['games', 'ratings', 'historyMeta'], 'readonly');
+      const history = { games: [], ratings: [], meta: null };
+      for (const store of ['games', 'ratings']) {
+        const request = transaction.objectStore(store).getAll();
+        request.onsuccess = () => { history[store] = request.result; };
+      }
+      const meta = transaction.objectStore('historyMeta').get('import');
+      meta.onsuccess = () => { history.meta = meta.result ?? null; };
+      transaction.oncomplete = () => resolve(history);
+      transaction.onabort = () => reject(transaction.error || new Error('Чтение истории отменено.'));
+      transaction.onerror = () => {};
+    });
+  }
+
+  async function importHistory(input) {
+    const batch = structuredClone(input);
+    if (!batch || !Array.isArray(batch.games) || (batch.ratings !== null && !Array.isArray(batch.ratings)) ||
+        !batch.meta || typeof batch.meta !== 'object' || Array.isArray(batch.meta)) {
+      throw new Error('Неверный пакет истории.');
+    }
+    const ids = new Set();
+    Array.from(batch.games, game => {
+      if (!game || typeof game.id !== 'string' || !game.id || ids.has(game.id)) throw new Error('Неверный или повторяющийся ID партии.');
+      ids.add(game.id);
+    });
+    if (batch.ratings !== null) Array.from(batch.ratings, series => {
+      if (!series || typeof series.name !== 'string' || !series.name) throw new Error('Неверная серия рейтинга.');
+    });
+    const database = await open();
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction(['games', 'ratings', 'historyMeta'], 'readwrite');
+      const games = transaction.objectStore('games');
+      let previousCount = 0;
+      let added = 0;
+      let existing = 0;
+      let failure;
+      const count = games.count();
+      count.onsuccess = () => { previousCount = count.result; };
+      try {
+        for (const game of batch.games) {
+          const request = games.get(game.id);
+          request.onsuccess = () => {
+            try {
+              if (request.result === undefined) { games.put(game); added += 1; }
+              else existing += 1;
+            } catch (error) { failure = error; transaction.abort(); }
+          };
+        }
+        if (batch.ratings !== null) {
+          const ratings = transaction.objectStore('ratings');
+          for (const series of batch.ratings) ratings.put(series);
+        }
+        transaction.objectStore('historyMeta').put(batch.meta, 'import');
+      } catch (error) { failure = error; transaction.abort(); }
+      transaction.oncomplete = () => resolve({ added, existing, total: previousCount + added });
+      transaction.onabort = () => reject(failure || transaction.error || new Error('Сохранение истории отменено.'));
+      transaction.onerror = () => {};
+    });
+  }
+
+  return { read, transact, readHistory, importHistory };
 }

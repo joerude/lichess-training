@@ -1,4 +1,5 @@
 import { mountTrainingPage, formatDay, puzzleNoun } from './page.js';
+import { mountHistory } from './history.js';
 
 const page = mountTrainingPage((snapshot) => {
   document.getElementById('completed-days').textContent = snapshot.completedDays;
@@ -28,6 +29,15 @@ const page = mountTrainingPage((snapshot) => {
   list.replaceChildren(fragment);
   document.getElementById('week-summary').textContent = `Отмечено дней: ${entries.filter((day) => day.completed).length} из ${entries.filter((day) => day.scheduled).length}`;
 });
+
+const setPageBusy = page.setExternalBusy;
+let externalOperations = 0;
+page.setExternalBusy = (value) => {
+  externalOperations = Math.max(0, externalOperations + (value ? 1 : -1));
+  setPageBusy(externalOperations > 0);
+};
+const history = mountHistory(page);
+void history.refresh();
 
 document.getElementById('export').addEventListener('click', async () => {
   page.setExternalBusy(true);

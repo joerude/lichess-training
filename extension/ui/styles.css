@@ -160,3 +160,52 @@ h2 { font-size: 20px; line-height: 1.3; font-weight: 600; letter-spacing: -.025e
 @media (prefers-reduced-motion: no-preference) {
   .button { transition: background-color .12s, color .12s; }
 }
+.history-card { margin-top: 22px; padding: 27px 31px; }
+.history-card h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.history-period { margin-top: 15px; }
+.history-metadata { margin-top: 7px; overflow-wrap: anywhere; }
+.history-card .message { margin-top: 16px; }
+.history-table-wrap { overflow-x: auto; margin-top: 20px; }
+.history-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.history-table th, .history-table td { padding: 12px 11px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.history-table th:first-child, .history-table td:first-child { padding-left: 0; }
+.history-table thead th { color: var(--muted); font-weight: 500; font-size: 11px; }
+.history-analysis-note { margin-top: 12px; max-width: 710px; }
+.history-rating-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 27px; }
+.history-rating-heading > div { display: flex; align-items: center; gap: 9px; }
+.history-rating-heading label { font-size: 12px; color: var(--muted); }
+.history-rating-heading select { font: inherit; font-size: 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px; }
+.history-chart { margin-top: 15px; padding: 12px 15px; background: #f8f9f5; border: 1px solid #edf0e9; border-radius: 10px; }
+.history-rating-chart { display: block; width: 100%; height: auto; }
+.history-chart-grid { stroke: var(--line); stroke-width: 1; }
+.history-chart-line { fill: none; stroke: var(--green); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.history-chart-point { fill: var(--green); }
+.history-chart-label { fill: var(--muted); font-size: 11px; }
+.history-chart-summary { margin-top: 9px; }
+.history-chart-empty { font-size: 13px; padding-block: 20px; }
+.history-import-section { border-top: 1px solid var(--line); padding-top: 25px; margin-top: 26px; }
+.history-import-copy { font-size: 13px; margin-top: 8px; max-width: 660px; }
+.history-file-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 19px; }
+.history-file-field label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 9px; }
+.history-file-field input { width: 100%; min-width: 0; font-size: 12px; color: var(--muted); }
+.history-file-field input::file-selector-button { color: var(--ink); font: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-right: 8px; cursor: pointer; }
+.history-file-field .caption { margin-top: 7px; }
+.history-file-field .button { min-height: 32px; margin-top: 5px; padding: 5px 0; font-weight: 400; font-size: 11px; }
+.history-preview { margin-top: 18px; padding: 18px; border: 1px solid #cadbc0; background: var(--tint); border-radius: 9px; }
+.history-preview-list { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(0, 1.5fr); gap: 7px 15px; margin: 13px 0; font-size: 12px; }
+.history-preview-list dt { color: var(--muted); }
+.history-preview-list dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.history-import-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.history-import-note { margin-top: 12px; }
+.history-card button:disabled, .history-card input:disabled { cursor: default; }
+.history-card[aria-busy="true"] button:disabled { cursor: wait; }
+@media (max-width: 540px) {
+  .history-card { padding: 23px 19px; }
+  .history-card .section-heading { gap: 5px; }
+  .history-card .section-heading > .button { padding-left: 0; }
+  .history-file-grid { grid-template-columns: 1fr; gap: 19px; }
+  .history-preview { padding: 15px; }
+  .history-preview-list { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 8px; }
+  .history-import-actions .button { flex: 1 1 100%; }
+  .history-chart { padding: 10px; }
+}
