@@ -57,11 +57,11 @@ Message transport: background catches service errors and returns `{ ok: true, da
 
 **Interfaces:** produce repository and service contracts above; rules export `dayKey(date, timeZone)` and helpers needed by the service. The journal is a single record in IndexedDB v1; separate game stores can be added in stage 2. Network never occurs in a transaction.
 
-- [ ] Write behavior tests first: UTC 17:59/18:00 maps to Bishkek's correct date; completion twice has one timestamp; stale day rejects; undo survives service recreation; simultaneous writes serialize; failed transaction leaves prior state; export/restore roundtrip; invalid dates, duplicates, cross-account/timezone, future schema/days and mismatched completion timestamps reject without mutation.
-- [ ] Run `node --test tests/training.test.js tests/repository.test.js`; observe failures before implementation and record why.
-- [ ] Implement the pure rules, real IndexedDB repository and service. Use fake-indexeddb only as the unavailable browser storage boundary for tests.
-- [ ] Run those tests; all pass. Self-review transaction lifetime, import atomicity and clock capture once per command.
-- [ ] Review the rules, persistence and service before UI integration.
+- [x] Write behavior tests first: UTC 17:59/18:00 maps to Bishkek's correct date; completion twice has one timestamp; stale day rejects; undo survives service recreation; simultaneous writes serialize; failed transaction leaves prior state; export/restore roundtrip; invalid dates, duplicates, cross-account/timezone, future schema/days and mismatched completion timestamps reject without mutation.
+- [x] Run `node --test tests/training.test.js tests/repository.test.js`; observe failures before implementation and record why.
+- [x] Implement the pure rules, real IndexedDB repository and service. Use fake-indexeddb only as the unavailable browser storage boundary for tests.
+- [x] Run those tests; all pass. Self-review transaction lifetime, import atomicity and clock capture once per command.
+- [x] Review the rules, persistence and service before UI integration.
 
 ### Task 2: Firefox pages and message integration
 
@@ -69,11 +69,11 @@ Message transport: background catches service errors and returns `{ ok: true, da
 
 **Interfaces:** consume `createTrainingService` and the message envelope above. An extension page opens `browser.runtime.getURL("ui/dashboard.html")` via `browser.tabs.create`; no `tabs` permission is required for creating a tab. Export uses a local Blob and download link; import uses a local file input and a review/replace dialog, capped at 2 MiB.
 
-- [ ] Write a focused failing transport test covering success, service error and unauthorised sender; avoid tests that merely assert exact copy or element IDs.
-- [ ] Implement manifest: version `0.1.0`, fixed gecko ID `lichess-training@local`, strict minimum `140.0`, data collection required `["none"]`, action popup, module background scripts; no unused permissions.
-- [ ] Implement dashboard with today's task, Lichess puzzles link, manual completion/undo, last seven days, completed-day total and export/restore controls. Show loading, persisted success and actionable errors. Use `textContent` for data, external scripts, keyboard labels and visible focus.
-- [ ] Implement compact popup with today's task/status and dashboard link. Refresh on focus/visibility and at the next timezone day boundary, including dashboard rollover. Pause the completion button during requests and retain the date displayed at click time.
-- [ ] Run `npm test` and `npm run lint:addon`; zero addon errors/warnings. Review integration; no browser available means visual/Firefox interaction checks remain explicitly manual.
+- [x] Write a focused failing transport test covering success, service error and unauthorised sender; avoid tests that merely assert exact copy or element IDs.
+- [x] Implement manifest: version `0.1.0`, fixed gecko ID `lichess-training@local`, strict minimum `140.0`, data collection required `["none"]`, action popup, module background scripts; no unused permissions.
+- [x] Implement dashboard with today's task, Lichess puzzles link, manual completion/undo, last seven days, completed-day total and export/restore controls. Show loading, persisted success and actionable errors. Use `textContent` for data, external scripts, keyboard labels and visible focus.
+- [x] Implement compact popup with today's task/status and dashboard link. Refresh on focus/visibility and at the next timezone day boundary, including dashboard rollover. Pause the completion button during requests and retain the date displayed at click time.
+- [x] Run `npm test` and `npm run lint:addon`; zero addon errors/warnings. Review integration; no browser available means visual/Firefox interaction checks remain explicitly manual.
 
 ### Task 3: Packaging and learning materials
 
@@ -81,8 +81,12 @@ Message transport: background catches service errors and returns `{ ok: true, da
 
 **Interfaces:** uses implemented file paths and package scripts; no fabricated user learning outcomes.
 
-- [ ] Document temporary install from `extension/manifest.json`, export/restore exercise, exact module flow and a small independent change to popup's title, distinct from day target changes.
-- [ ] Document a compact manual QA route: load, mark, reopen, undo, export, inspect preview, restore, two windows, midnight/focus refresh and errors. Record actual automation results separately from pending Firefox checks.
-- [ ] Run `npm test`, `npm run lint:addon`, `npm run build:addon`; inspect archive file list and all module/HTML references. No source dataset or teaching files are bundled.
-- [ ] Fresh whole-project review against the stage-1 spec, address material issues, rerun checks after any fixes.
-- [ ] Report the deliverable, install steps, test evidence, manual verification limit and next dataset stage.
+- [x] Document temporary install from `extension/manifest.json`, export/restore exercise, exact module flow and a small independent change to popup's title, distinct from day target changes.
+- [x] Document a compact manual QA route: load, mark, reopen, undo, export, inspect preview, restore, two windows, midnight/focus refresh and errors. Record actual automation results separately from pending Firefox checks.
+- [x] Run `npm test`, `npm run lint:addon`, `npm run build:addon`; inspect archive file list and all module/HTML references. No source dataset or teaching files are bundled.
+- [x] Fresh whole-project review against the stage-1 spec, address material issues, rerun checks after any fixes.
+- [x] Report the deliverable, install steps, test evidence, manual verification limit and next dataset stage.
+
+## Completion record
+
+Implemented 4 October 2026. Final independent review: approved, no open findings; 59/59 tests passed. Addon lint reports 0 errors/notices/warnings. ZIP contains 14 product files matching source bytes. Real Firefox installation, rendering and file/dialog checks remain manual as explicitly planned; learner achievements are not claimed. See `docs/verification.md` and `docs/reviews/2026-10-04-stage1.md`.
