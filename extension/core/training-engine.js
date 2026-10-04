@@ -75,7 +75,8 @@ export function normalizeBackup(backup, today) {
   if (!isCalendarDate(program.startedOn) || program.startedOn > today) throw new Error('Некорректная дата начала программы.');
   if (!Array.isArray(state.days) || state.days.length > 10000) throw new Error('Некорректный список дней (максимум 10 000).');
   const dates = new Set();
-  const days = state.days.map(entry => {
+  // Array.from visits sparse slots too, so structured-clone messages cannot skip validation.
+  const days = Array.from(state.days, entry => {
     requireObject(entry);
     if (!isCalendarDate(entry.date) || entry.date < program.startedOn || entry.date > today || dates.has(entry.date)) {
       throw new Error('Некорректная или повторяющаяся дата дня в резервной копии.');

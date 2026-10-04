@@ -202,3 +202,18 @@ test('malformed commands reject without changing the journal', async () => {
     assert.deepEqual(await f.repository.read(), before);
   }
 });
+
+test('import rejects sparse days without replacing a working journal', async () => {
+  const f = fixture();
+  await complete(f.service, '2026-10-04');
+  const before = await f.repository.read();
+  const beforeExport = await exported(f.service);
+  const backup = structuredClone(beforeExport);
+  backup.state.days = new Array(1);
+  await assert.rejects(f.service.handle({ type: 'training.import', backup }));
+  assert.deepEqual(await f.repository.read(), before);
+  assert.deepEqual(await exported(f.service), beforeExport);
+  const result = await snapshot(f.service);
+  assert.equal(result.today.completed, true);
+  assert.equal(result.today.completedAt, '2026-10-04T10:00:00.000Z');
+});
