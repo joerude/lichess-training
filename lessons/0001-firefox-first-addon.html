@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Урок 01 · Первый addon для Firefox</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+  <script src="../assets/lesson.js" defer></script>
+</head>
+<body>
+<main>
+  <nav aria-label="Навигация по уроку">
+    <a href="#practice">Запустить пример</a>
+    <a href="#experiment">Изменить самому</a>
+    <a href="#recall">Проверить понимание</a>
+    <a href="../reference/0001-manifest-and-popup.html">Краткая памятка</a>
+  </nav>
+  <header>
+    <p class="eyebrow">Lichess Training · Firefox · Урок 01</p>
+    <h1>Своя кнопка в браузере</h1>
+    <p class="lead">Создай небольшой учебный addon: нажимаешь кнопку Firefox и видишь карточку «Решить 5 задач». Затем меняешь текст и проверяешь результат.</p>
+    <div class="meta"><span>Ориентир: 10–15 минут</span><span>Два файла</span><span>HTML + JSON</span></div>
+  </header>
+
+  <section class="callout" aria-label="Цель урока">
+    <p><strong>Результат:</strong> ты можешь загрузить расширение, объяснить связь manifest с popup и изменить карточку. Это первый шаг к собственной программе тренировок.</p>
+  </section>
+
+  <section class="grid" aria-label="Две части расширения">
+    <article class="card">
+      <h2>Manifest</h2>
+      <p><code>manifest.json</code> сообщает Firefox имя, версию и устройство расширения. Поле <code>action.default_popup</code> указывает, какую HTML-страницу открыть по нажатию кнопки.</p>
+      <p class="sources"><a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/action" target="_blank" rel="noopener noreferrer">Mozilla: action и default_popup</a></p>
+    </article>
+    <article class="card">
+      <h2>Popup</h2>
+      <p><code>popup.html</code> задаёт содержимое карточки. Имя файла выбираешь ты; оно должно совпадать с путём в manifest.</p>
+      <p class="muted">На следующем этапе добавим действие «Выполнено» и сохранение прогресса.</p>
+    </article>
+  </section>
+
+  <section id="practice" class="card">
+    <h2>1. Создай два файла</h2>
+    <p>В рабочей папке создай каталог <code>practice/lesson-01</code>. Сохрани оба файла внутри него:</p>
+    <pre aria-label="Структура каталога"><code>practice/lesson-01/
+  manifest.json
+  popup.html</code></pre>
+
+    <div class="code-heading">
+      <h3>manifest.json</h3>
+      <button type="button" data-copy="manifest-code" data-status="manifest-copy-status" aria-label="Скопировать manifest.json">Скопировать</button>
+    </div>
+    <pre><code id="manifest-code">{
+  "manifest_version": 3,
+  "name": "Lichess Training · Урок 01",
+  "version": "0.1.0",
+  "description": "Учебная карточка шахматного задания.",
+  "action": {
+    "default_title": "Тренировка сегодня",
+    "default_popup": "popup.html",
+    "default_area": "navbar"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "lichess-training-lesson-01@example.org",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  }
+}
+</code></pre>
+    <p id="manifest-copy-status" class="muted" aria-live="polite"></p>
+    <p><code>manifest_version</code> выбирает формат manifest, <code>version</code> — версию твоего addon. Это разные значения. Для Firefox добавлены идентификатор и описание использования данных; данный пример только показывает локальный текст. <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Your_first_WebExtension" target="_blank" rel="noopener noreferrer">Разбор manifest у Mozilla</a>.</p>
+
+    <div class="code-heading">
+      <h3>popup.html</h3>
+      <button type="button" data-copy="popup-code" data-status="popup-copy-status" aria-label="Скопировать popup.html">Скопировать</button>
+    </div>
+    <pre><code id="popup-code">&lt;!doctype html&gt;
+&lt;html lang="ru"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Тренировка сегодня&lt;/title&gt;
+&lt;/head&gt;
+&lt;body style="width: 280px; padding: 12px; font-family: system-ui;"&gt;
+  &lt;h1&gt;Тренировка сегодня&lt;/h1&gt;
+  &lt;p&gt;Задание: решить 5 задач.&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+    <p id="popup-copy-status" class="muted" aria-live="polite"></p>
+  </section>
+
+  <section class="card">
+    <h2>2. Загрузи в Firefox</h2>
+    <ol>
+      <li>В адресной строке Firefox открой <code>about:debugging#/runtime/this-firefox</code>.</li>
+      <li>Нажми <strong>Load Temporary Add-on…</strong> / «Загрузить временное дополнение».</li>
+      <li>Выбери созданный <code>practice/lesson-01/manifest.json</code>.</li>
+      <li>Нажми кнопку addon и проверь текст «Задание: решить 5 задач». Если кнопка не видна на панели, найди расширение в меню расширений Firefox.</li>
+    </ol>
+    <p class="sources">Временная установка действует до перезапуска Firefox; после него addon загружается снова. <a href="https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/" target="_blank" rel="noopener noreferrer">Mozilla: временная установка и Reload</a>.</p>
+    <details>
+      <summary>Если загрузка не получилась</summary>
+      <p>Проверь, что имя файла именно <code>manifest.json</code>, JSON сохранён с обычными двойными кавычками, а <code>popup.html</code> лежит рядом. Сообщение ошибки из <code>about:debugging</code> можно разобрать вместе со мной.</p>
+    </details>
+  </section>
+
+  <section id="experiment" class="card">
+    <h2>3. Сделай изменение сам</h2>
+    <ol>
+      <li>В <code>popup.html</code> замени «решить 5 задач» на «решить 3 задачи».</li>
+      <li>В manifest замени <code>default_title</code> на «Мой шахматный план».</li>
+      <li>Сохрани файлы, нажми <strong>Reload</strong> у addon в <code>about:debugging</code> и снова открой карточку.</li>
+      <li>Проверь два разных места: текст задания внутри popup и подсказку при наведении на кнопку.</li>
+    </ol>
+    <p class="muted">Попробуй сначала предсказать, какое изменение окажется внутри карточки, а какое — на кнопке. Потом сравни с результатом.</p>
+  </section>
+
+  <section id="recall" class="card">
+    <h2>4. Вспомни без подсказки</h2>
+    <p>Не возвращаясь к фрагментам выше, проверь две ситуации. После ответа появится объяснение.</p>
+    <form class="quiz" data-answer="manifest" data-correct="Верно. Manifest связывает кнопку с файлом popup через action.default_popup." data-incorrect="Подумай, какой файл Firefox читает как описание расширения. Именно там задан путь default_popup.">
+      <fieldset>
+        <legend>Ты переименовал popup.html в daily.html. Где исправить путь, чтобы кнопка открыла карточку?</legend>
+        <label class="choice"><input type="radio" name="file" value="popup"> В файле popup.html</label>
+        <label class="choice"><input type="radio" name="file" value="manifest"> В файле manifest.json</label>
+        <label class="choice"><input type="radio" name="file" value="stylesheet"> В файле lesson.css</label>
+      </fieldset>
+      <button class="primary" type="submit">Проверить первый ответ</button>
+      <p class="feedback" aria-live="polite"></p>
+    </form>
+    <hr>
+    <form class="quiz" data-answer="addon" data-correct="Верно. Reload заставляет Firefox перечитать manifest и загрузить файлы расширения." data-incorrect="Путь default_popup относится к конфигурации addon. Для его изменения Firefox должен перечитать manifest целиком.">
+      <fieldset>
+        <legend>Ты изменил default_popup в manifest. Как применить новую конфигурацию?</legend>
+        <label class="choice"><input type="radio" name="reload" value="page"> Обновить открытую страницу Lichess</label>
+        <label class="choice"><input type="radio" name="reload" value="addon"> Перезагрузить расширение через Reload</label>
+        <label class="choice"><input type="radio" name="reload" value="popup"> Перезагрузить только содержимое popup</label>
+      </fieldset>
+      <button class="primary" type="submit">Проверить второй ответ</button>
+      <p class="feedback" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Что уже получилось</h2>
+    <ul class="checklist">
+      <li><label><input type="checkbox"> Я загрузил manifest в Firefox и увидел свою карточку.</label></li>
+      <li><label><input type="checkbox"> Я изменил задание и подсказку кнопки, затем проверил оба результата.</label></li>
+      <li><label><input type="checkbox"> Я могу объяснить связь action.default_popup с HTML-файлом.</label></li>
+    </ul>
+    <p>Через день попробуй по памяти вспомнить, где меняется текст карточки и где её путь. Затем сверись с <a href="../reference/0001-manifest-and-popup.html">памяткой</a>.</p>
+  </section>
+  <footer>
+    <p><strong>Обратная связь:</strong> запиши, какой текст ты увидел после изменения и Reload. Если что-то неясно, задавай вопросы — разберём конкретный шаг.</p>
+    <p class="sources">Основное чтение: <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Your_first_WebExtension" target="_blank" rel="noopener noreferrer">Mozilla — Your first extension</a>. Следующий учебный шаг — действие «Выполнено» и сохранение прогресса.</p>
+  </footer>
+</main>
+</body>
+</html>

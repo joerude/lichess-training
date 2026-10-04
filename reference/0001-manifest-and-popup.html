@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Памятка · Manifest и popup в Firefox</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+<main>
+  <nav><a href="../lessons/0001-firefox-first-addon.html">Вернуться к уроку 01</a></nav>
+  <header>
+    <p class="eyebrow">Lichess Training · Памятка 01</p>
+    <h1>Manifest и popup</h1>
+    <p class="lead">Минимальная карта первого учебного addon.</p>
+  </header>
+  <section class="card">
+    <h2>Где что менять</h2>
+    <ul>
+      <li><code>manifest.json</code> — описание и конфигурация расширения.</li>
+      <li><code>name</code> — имя расширения.</li>
+      <li><code>manifest_version</code> — формат manifest; <code>version</code> — версия твоего addon.</li>
+      <li><code>action.default_title</code> — подсказка кнопки.</li>
+      <li><code>action.default_popup</code> — путь к HTML-карточке.</li>
+      <li><code>popup.html</code> — текст и разметка карточки.</li>
+    </ul>
+    <p class="sources"><a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/action">Mozilla: action</a>, <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Your_first_WebExtension">первое расширение</a>.</p>
+  </section>
+  <section class="card">
+    <h2>Цикл изменения</h2>
+    <p>Изменить файл → сохранить → Reload в <code>about:debugging</code> → открыть карточку → проверить ожидаемый результат.</p>
+    <p>Временная загрузка: <code>about:debugging</code> → This Firefox → Load Temporary Add-on → выбрать manifest. После перезапуска Firefox временный addon загружается снова.</p>
+    <p class="sources"><a href="https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/">Mozilla: временная установка</a>.</p>
+  </section>
+  <section class="callout"><p><strong>Проверка памяти:</strong> если переименовать popup, исправляется путь в manifest. Если изменить текст задания, меняется HTML-карточка.</p></section>
+</main>
+</body>
+</html>
