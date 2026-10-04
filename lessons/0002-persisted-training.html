@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Урок 02 · От кнопки к сохранённой отметке</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+  <script src="../assets/lesson.js" defer></script>
+</head>
+<body><main>
+  <nav aria-label="Навигация по уроку">
+    <a href="0001-firefox-first-addon.html">Урок 01</a>
+    <a href="#practice">Практика</a>
+    <a href="#recall">Проверить понимание</a>
+    <a href="../reference/0002-message-and-storage.html">Памятка</a>
+  </nav>
+  <header>
+    <p class="eyebrow">Lichess Training · Firefox · Урок 02</p>
+    <h1>От кнопки к сохранённой отметке</h1>
+    <p class="lead">Отметь тренировку, закрой popup и открой снова. Затем проследи, почему данные сохранились.</p>
+    <div class="meta"><span>Ориентир: 10 минут</span><span>Рабочий addon</span><span>Сообщение → транзакция</span></div>
+  </header>
+  <section class="callout"><p><strong>Результат:</strong> можешь показать, где живёт интерфейс, где принимается команда и где сохраняется отметка. Основная практика — маленькое изменение с наблюдаемым результатом.</p></section>
+  <section class="card">
+    <h2>Три места, три обязанности</h2>
+    <p><code>dashboard.js</code> отправляет <code>training.setCompletion</code> через <code>client.js</code>. <code>background.js</code> принимает сообщение и вызывает сервис <code>app/training.js</code>. Сервис сохраняет журнал через <code>data/repository.js</code> в IndexedDB.</p>
+    <pre><code>Кнопка во вкладке
+  → сообщение с датой и completed
+  → сервис в фоновой странице
+  → транзакция IndexedDB
+  → ответ и обновление экрана</code></pre>
+    <p>Popup создаётся при открытии и закрывается при потере фокуса. Фоновая страница тоже может выгружаться. Поэтому отметка хранится в базе, а страницы получают свежий снимок. <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background">Mozilla: фоновые страницы</a>.</p>
+  </section>
+  <section id="practice" class="card">
+    <h2>Проверь на своём расширении</h2>
+    <ol>
+      <li>Загрузи <code>extension/manifest.json</code> через <code>about:debugging#/runtime/this-firefox</code>.</li>
+      <li>Открой основной экран через popup и отметь выполнение.</li>
+      <li>Закрой экран, открой popup заново и проверь статус.</li>
+      <li>Найди заголовок popup в <code>extension/ui/popup.html</code>. Измени его текст, сохрани файл и нажми <strong>Reload</strong> у addon.</li>
+      <li>Проверь новый заголовок и прежнюю отметку. Не меняй идентификаторы элементов или пути файлов.</li>
+    </ol>
+    <p>Перед изменением предскажи: поменяется ли заголовок основного экрана? Потом проверь. У страниц разные HTML-файлы, а сервис данных у них общий.</p>
+    <p class="sources"><a href="https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/">Mozilla: временная установка и Reload</a>. После перезапуска Firefox временный addon загружается заново; для экспериментов сначала экспортируй резервную копию.</p>
+  </section>
+  <section id="recall" class="card">
+    <h2>Вспомни без подсказки</h2>
+    <form class="quiz" data-answer="db" data-correct="Да. Журнал в IndexedDB переживает закрытие popup. Новая страница получает его через сервис." data-incorrect="Popup — временная страница. Сервис сохраняет журнал в IndexedDB, затем отвечает интерфейсу.">
+      <fieldset><legend>Где остаётся отметка после закрытия popup?</legend>
+        <label><input type="radio" name="where" value="page"> В открытой вкладке</label>
+        <label><input type="radio" name="where" value="db"> В локальной базе</label>
+      </fieldset>
+      <button type="submit">Проверить</button>
+      <p class="feedback" aria-live="polite"></p>
+    </form>
+    <p>Теперь найди <code>training.setCompletion</code> в коде и проследи до транзакции. Объясни своими словами, зачем команда содержит дату и почему успех показывается после сохранения.</p>
+    <details><summary>Подсказка после попытки</summary><p>Дата защищает от клика в старом экране после полуночи. Завершившаяся транзакция подтверждает, что запись сохранена; изменение текста кнопки само по себе этого не гарантирует.</p></details>
+  </section>
+  <section class="card"><h2>Следующая встреча</h2><p>Завтра без чтения кода назови путь команды из памяти. Напиши мне, что удалось проверить и что осталось непонятным: разберём вместе. Следующий этап проекта — применить настоящую историю из твоего lichess_dataset.</p></section>
+  <footer><p>Основной источник: <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/sendMessage">Mozilla: runtime.sendMessage</a>. <a href="../reference/0002-message-and-storage.html">Краткая памятка</a>.</p></footer>
+</main></body>
+</html>

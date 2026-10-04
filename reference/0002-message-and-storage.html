@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Памятка · Сообщения и сохранение</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body><main>
+  <nav aria-label="Навигация"><a href="../lessons/0002-persisted-training.html">Урок 02</a><a href="0001-manifest-and-popup.html">Manifest и popup</a></nav>
+  <header><p class="eyebrow">Lichess Training · Памятка</p><h1>Сообщение → сохранение → ответ</h1></header>
+  <section class="card"><h2>Путь в проекте</h2>
+    <table><thead><tr><th>Файл</th><th>Обязанность</th></tr></thead><tbody>
+      <tr><td><code>ui/dashboard.js</code></td><td>Прочитать дату экрана, отправить команду, показать ответ</td></tr>
+      <tr><td><code>ui/client.js</code></td><td>Отправить сообщение и распаковать успех/ошибку</td></tr>
+      <tr><td><code>background.js</code></td><td>Проверить отправителя и передать команду сервису</td></tr>
+      <tr><td><code>app/training.js</code></td><td>Выбрать день, выполнить правило, сохранить изменение</td></tr>
+      <tr><td><code>core/training-engine.js</code></td><td>Правила дат, снимка и проверки резервной копии</td></tr>
+      <tr><td><code>data/repository.js</code></td><td>Читать журнал и атомарно записывать транзакцию</td></tr>
+    </tbody></table>
+  </section>
+  <section class="card"><h2>Команда выполнения</h2><pre><code>{
+  type: "training.setCompletion",
+  day: "2026-10-04",
+  completed: true
+}</code></pre><p><code>day</code> — дата, показанная в интерфейсе, по часовому поясу программы. Старый день нельзя случайно отметить как новый.</p></section>
+  <section class="card"><h2>Что помнить</h2><ul>
+    <li>Источник прогресса — IndexedDB; переменные страницы временные.</li>
+    <li>Успех возвращается после завершения транзакции.</li>
+    <li>Повтор команды не создаёт вторую запись дня.</li>
+    <li>Экспорт создаёт файл; восстановление заменяет журнал после проверки.</li>
+  </ul></section>
+  <footer><p><a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/sendMessage">Mozilla: сообщения</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API">Mozilla: IndexedDB</a></p></footer>
+</main></body></html>

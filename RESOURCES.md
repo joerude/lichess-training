@@ -13,6 +13,17 @@
 - [Mozilla Extension Workshop: Temporary installation in Firefox](https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/)
   Загрузка через about:debugging, Reload и отличия временной установки от обычной. Использовать для ручной проверки и отладки учебных изменений.
 
+## Knowledge: сообщения и хранение
+
+- [MDN: runtime.sendMessage](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/sendMessage)
+  Запрос страницы к фоновому обработчику и асинхронный ответ. Основа урока 02.
+- [MDN: background](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background)
+  Firefox event pages, ES modules и регистрация обработчиков; состояние страницы не заменяет постоянное хранение.
+- [MDN: IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
+  Объектная база, индексы и транзакции. Основа сохранения прогресса и последующего импорта партий.
+- [Mozilla: web-ext](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/)
+  Проверка manifest, временный запуск и упаковка addon; используется как инструмент разработки.
+
 ## Wisdom (Communities)
 
 Потребность в обсуждениях с сообществом пока не определена.
