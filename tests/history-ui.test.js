@@ -163,3 +163,77 @@ test('rating rendering replaces the selected graph and provides empty and single
   assert.equal(container.children.filter((element) => element.name === 'svg').length, 0);
   assert.match(container.children[0].textContent, /Rapid/);
 });
+
+test('import callback runs after commit and releases the history queue before refreshing other panels', { timeout: 1000 }, async () => {
+  let finishImport;
+  let controller;
+  let notifications = 0;
+  const rendered = [];
+  controller = history.createHistoryController({
+    client: { request(command) {
+      if (command.type === 'history.previewImport') return Promise.resolve(preview);
+      if (command.type === 'history.import') return new Promise((resolve) => { finishImport = resolve; });
+      assert.equal(command.type, 'history.getOverview');
+      return Promise.resolve({ ...overview, totalGames: 2 });
+    } },
+    renderOverview: (value) => rendered.push(value), renderPreview() {}, setBusy() {}, showError: (error) => assert.fail(error.message), showSuccess() {},
+    onImported: async () => { notifications++; await controller.refresh(); },
+  });
+  await controller.previewFiles(file());
+  const pending = controller.import();
+  await settle();
+  assert.equal(notifications, 0);
+  finishImport({ overview: { ...overview, totalGames: 2 }, report: { added: 1, existing: 0, total: 2 } });
+  assert.equal(await pending, true);
+  assert.equal(notifications, 1);
+  assert.deepEqual(rendered.map((value) => value.totalGames), [2, 2]);
+});
+
+test('failed history imports never notify another panel', async () => {
+  let notifications = 0;
+  const controller = history.createHistoryController({
+    client: { request: async (command) => { if (command.type === 'history.previewImport') return preview; throw new Error('Storage full'); } },
+    renderOverview() {}, renderPreview() {}, setBusy() {}, showError() {}, showSuccess() {}, onImported: async () => { notifications++; },
+  });
+  await controller.previewFiles(file());
+  assert.equal(await controller.import(), false);
+  assert.equal(notifications, 0);
+});
+
+test('a pending import notification permits the next save without unlocking its active mutation', { timeout: 1000 }, async () => {
+  const writes = [];
+  let finishFirstNotification;
+  let notifications = 0;
+  const controller = history.createHistoryController({
+    client: { request(command) {
+      if (command.type === 'history.previewImport') return Promise.resolve(preview);
+      assert.equal(command.type, 'history.import');
+      return new Promise((resolve) => { writes.push({ command, resolve }); });
+    } },
+    renderOverview() {}, renderPreview() {}, setBusy() {}, showError: (error) => assert.fail(error.message), showSuccess() {},
+    onImported: () => ++notifications === 1 ? new Promise((resolve) => { finishFirstNotification = resolve; }) : Promise.resolve(),
+  });
+  const result = (total) => ({ overview: { ...overview, totalGames: total }, report: { added: 1, existing: 0, total } });
+  await controller.previewFiles(file('first', 'first.ndjson'));
+  const first = controller.import();
+  await settle();
+  writes[0].resolve(result(1));
+  await settle();
+  assert.equal(notifications, 1);
+  await controller.previewFiles(file('second', 'second.ndjson'));
+  const second = controller.import();
+  await settle();
+  assert.equal(writes.length, 2, 'the second import should reach persistence while the first notification waits');
+  assert.equal(writes[1].command.sourceName, 'second.ndjson');
+  finishFirstNotification();
+  assert.equal(await first, true);
+  let duplicateSettled = false;
+  const duplicate = controller.import().then((value) => { duplicateSettled = true; return value; });
+  await settle();
+  assert.equal(duplicateSettled, true, 'completion of the older notification must not unlock the active second import');
+  assert.equal(await duplicate, false);
+  writes[1].resolve(result(2));
+  assert.equal(await second, true);
+  assert.equal(writes.length, 2);
+  assert.equal(notifications, 2);
+});

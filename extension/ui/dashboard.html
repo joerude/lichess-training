@@ -33,6 +33,27 @@
         </aside>
       </div>
       <section class="card week-card" aria-labelledby="week-heading"><div class="section-heading"><div><p class="eyebrow">РИТМ ПРАКТИКИ</p><h2 id="week-heading">Последние семь дней</h2></div><p id="week-summary" class="muted">Загрузка…</p></div><ol id="week" class="week-grid" aria-label="Выполнение за последние семь дней"></ol><p class="caption week-legend"><span>✓ Выполнено</span><span>○ Не отмечено</span><span>— До начала программы</span></p></section>
+      <section id="sync-card" class="card sync-card" aria-labelledby="sync-heading" aria-busy="false">
+        <div class="section-heading"><div><p class="eyebrow">ПАРТИИ С LICHESS</p><h2 id="sync-heading">Свежие партии</h2></div><time id="sync-date">Загрузка…</time></div>
+        <p class="muted sync-description">Партии за сегодня из загруженной истории · время Бишкека. Это сохранённые факты, а не выполнение задач или опыт.</p>
+        <dl class="sync-counts" aria-label="Загруженные партии за сегодня">
+          <div><dt>Bullet</dt><dd id="sync-bullet">—</dd></div>
+          <div><dt>Blitz</dt><dd id="sync-blitz">—</dd></div>
+          <div><dt>Rapid</dt><dd id="sync-rapid">—</dd></div>
+        </dl>
+        <p id="sync-state" class="muted" role="status">Читаем сохранённую историю…</p>
+        <p id="sync-total" class="caption sync-total"></p>
+        <dl class="sync-metadata">
+          <dt>Начало запрашиваемой истории</dt><dd id="sync-coverage">—</dd>
+          <dt>Полностью загружено до</dt><dd id="sync-completed">—</dd>
+          <dt>Последняя завершённая загрузка периода</dt><dd id="sync-last-success">—</dd>
+        </dl>
+        <p id="sync-retry" class="message sync-retry" role="status" hidden></p>
+        <div id="sync-error" class="message message-error" role="alert" hidden></div>
+        <p id="sync-notice" class="message message-success" role="status" hidden></p>
+        <div class="sync-actions"><button id="sync-run" class="button button-primary" type="button" aria-describedby="sync-permission-description">Подключить Lichess</button><button id="sync-stop" class="button button-secondary" type="button" hidden>Остановить после текущей порции</button></div>
+        <p id="sync-permission-description" class="caption sync-permission-description">При подключении имя профиля sebajun777 передаётся Lichess для загрузки партий. Журнал остаётся локальным. За один запуск загружается до пяти порций; остановка действует после сохранения текущей порции.</p>
+      </section>
       <section id="history-card" class="card history-card" aria-labelledby="history-heading" aria-busy="false">
         <div class="section-heading"><div><p class="eyebrow">ИСТОРИЯ ПАРТИЙ</p><h2 id="history-heading">Исходная статистика</h2></div><button id="history-refresh" class="button button-quiet" type="button">Обновить историю</button></div>
         <p id="history-period" class="muted history-period" role="status">Загружаем историю…</p>
@@ -58,7 +79,7 @@
       </section>
       <section class="card backup-card" aria-labelledby="backup-heading"><div><p class="eyebrow">ВАШИ ДАННЫЕ</p><h2 id="backup-heading">Копия отметок тренировок</h2><p class="muted">Сохраните отметки, чтобы перенести или восстановить их в Firefox. Историю партий можно снова импортировать из исходных файлов; она не входит в эту копию.</p></div><div class="backup-actions"><button id="export" class="button button-secondary" type="button" data-write-control disabled>Скачать JSON</button><button id="restore" class="button button-quiet" type="button" data-write-control disabled>Восстановить из файла</button><input id="backup-file" type="file" accept=".json,application/json" hidden></div></section>
     </main>
-    <footer class="app-footer"><span>sebajun777 · Личная шахматная практика</span><span>Данные остаются в браузере</span></footer>
+    <footer class="app-footer"><span>sebajun777 · Личная шахматная практика</span><span>Журнал хранится в браузере</span></footer>
   </div>
   <dialog id="restore-dialog" class="restore-dialog" aria-labelledby="restore-heading" aria-describedby="restore-description"><div class="dialog-body"><p class="eyebrow">ВОССТАНОВЛЕНИЕ ОТМЕТОК</p><h2 id="restore-heading">Проверьте копию отметок</h2><p id="restore-description" class="muted">Текущие отметки тренировок будут полностью заменены. Сначала скачайте их копию, если хотите сохранить обе версии. История партий сохраняется.</p><dl id="backup-preview" class="backup-preview"></dl><p class="caption">Файл будет проверен перед сохранением. Отметки заменятся только после успешной проверки.</p><p id="restore-error" class="message message-error" role="alert" hidden></p><div class="dialog-actions"><button id="cancel-restore" class="button button-secondary" type="button">Отмена</button><button id="replace" class="button button-primary" type="button">Заменить отметки</button></div></div></dialog>
 </body>

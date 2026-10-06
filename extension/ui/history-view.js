@@ -38,7 +38,7 @@ export function renderHistoryOverview(panel, overview) {
   const metadata = find('history-metadata');
   metadata.hidden = !overview.importedAt;
   metadata.textContent = overview.importedAt
-    ? `Последний импорт: ${date(overview.importedAt)}${overview.sourceName ? ` · ${overview.sourceName}` : ''}. Данные описывают исторический период, а не текущую форму.`
+    ? `Последний импорт файлов: ${date(overview.importedAt)}${overview.sourceName ? ` · ${overview.sourceName}` : ''}. Партии из файлов и Lichess входят в общую статистику.`
     : '';
   const rows = document.createDocumentFragment();
   for (const speed of ['bullet', 'blitz', 'rapid']) {

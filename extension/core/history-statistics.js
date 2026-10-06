@@ -24,8 +24,13 @@ export function buildHistoryOverview({ games, ratings, meta }) {
   for (const group of groups) group.winRate = group.games ? group.wins / group.games * 100 : null;
   const history = NAMES.flatMap((name, index) => {
     const supplied = ratings.find(series => series.name === name);
-    if (supplied?.points.length) return [{ name, points: supplied.points.map(point => ({ ...point })).sort((a, b) => a.date.localeCompare(b.date)) }];
-    const points = index < SPEEDS.length ? [...derived.get(SPEEDS[index])].map(([date, rating]) => ({ date, rating })) : [];
+    const recent = index < SPEEDS.length ? [...derived.get(SPEEDS[index])].map(([date, rating]) => ({ date, rating })) : [];
+    if (supplied?.points.length) {
+      const points = supplied.points.map(point => ({ ...point })).sort((a, b) => a.date.localeCompare(b.date));
+      const lastDate = points.at(-1).date;
+      return [{ name, points: [...points, ...recent.filter(point => point.date > lastDate)] }];
+    }
+    const points = recent;
     return points.length ? [{ name, points }] : supplied ? [{ name, points: [] }] : [];
   });
   return {

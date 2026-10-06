@@ -78,3 +78,20 @@ test('same-time games choose deterministic daily rating independently of input o
   assert.deepEqual(forward, reverse);
   assert.equal(forward.groups[0].lastRating, 2102);
 });
+
+test('new game dates extend imported rating series without replacing supplied days or puzzles', () => {
+  const ratings = [
+    { name: 'Bullet', points: [{ date: '2026-03-01', rating: 1999 }] },
+    { name: 'Puzzles', points: [{ date: '2026-03-01', rating: 1726 }] },
+  ];
+  const result = buildHistoryOverview({ games: [
+    game('SameDay1', 'bullet', 'win', instant, 2000, 5),
+    game('NextDay1', 'bullet', 'win', instant + 120000, 2005, 6),
+    game('NextDay2', 'bullet', 'win', instant + 180000, 2011, 7),
+  ], ratings, meta: null });
+  assert.deepEqual(result.ratings, [
+    { name: 'Bullet', points: [{ date: '2026-03-01', rating: 1999 }, { date: '2026-03-02', rating: 2018 }] },
+    { name: 'Puzzles', points: [{ date: '2026-03-01', rating: 1726 }] },
+  ]);
+  assert.equal(ratings[0].points.length, 1);
+});

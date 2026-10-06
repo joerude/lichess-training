@@ -1,5 +1,6 @@
 import { mountTrainingPage, formatDay, puzzleNoun } from './page.js';
 import { mountHistory } from './history.js';
+import { mountSync } from './sync.js';
 
 const page = mountTrainingPage((snapshot) => {
   document.getElementById('completed-days').textContent = snapshot.completedDays;
@@ -36,8 +37,11 @@ page.setExternalBusy = (value) => {
   externalOperations = Math.max(0, externalOperations + (value ? 1 : -1));
   setPageBusy(externalOperations > 0);
 };
-const history = mountHistory(page);
+const history = mountHistory({ ...page, onImported: () => sync.refresh() });
 void history.refresh();
+const sync = mountSync({ client: page.client, setExternalBusy: page.setExternalBusy,
+  onHistoryChanged: () => history.refresh() });
+void sync.refresh();
 
 document.getElementById('export').addEventListener('click', async () => {
   page.setExternalBusy(true);

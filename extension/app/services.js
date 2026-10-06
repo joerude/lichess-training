@@ -1,14 +1,18 @@
 import { createTrainingService } from './training.js';
 import { createHistoryService } from './history.js';
+import { createSyncService } from './sync.js';
+import { createLichessClient } from '../data/lichess-client.js';
 
-export function createServices({ repository, now }) {
+export function createServices({ repository, now, lichess = createLichessClient(), canAccess }) {
   const training = createTrainingService({ repository, now });
   const history = createHistoryService({ repository, now });
+  const sync = createSyncService({ repository, now, lichess, canAccess });
   return {
     handle(command) {
       if (!command || typeof command !== 'object') throw new Error('Некорректная команда.');
-      return typeof command.type === 'string' && command.type.startsWith('history.')
-        ? history.handle(command) : training.handle(command);
+      if (typeof command.type === 'string' && command.type.startsWith('history.')) return history.handle(command);
+      if (typeof command.type === 'string' && command.type.startsWith('sync.')) return sync.handle(command);
+      return training.handle(command);
     },
   };
 }

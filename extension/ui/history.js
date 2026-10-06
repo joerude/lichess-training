@@ -15,7 +15,7 @@ export async function readHistoryFiles(gamesFile, ratingsFile) {
 }
 
 // Keep every request in order, and bind the approved preview to its file selection.
-export function createHistoryController({ client, renderOverview, renderPreview, setBusy, showError, showSuccess }) {
+export function createHistoryController({ client, renderOverview, renderPreview, setBusy, showError, showSuccess, onImported = async () => {} }) {
   let tail = Promise.resolve();
   let tasks = 0;
   let revision = 0;
@@ -70,8 +70,9 @@ export function createHistoryController({ client, renderOverview, renderPreview,
       if (!candidate || writing) return false;
       const approved = candidate;
       writing = true;
+      let committed;
       try {
-        return await enqueue(async () => {
+        committed = await enqueue(async () => {
           const result = await client.request({ type: 'history.import', ...approved });
           renderOverview(result.overview);
           invalidatePreview();
@@ -79,11 +80,14 @@ export function createHistoryController({ client, renderOverview, renderPreview,
           return true;
         }, 'history.import');
       } finally { writing = false; }
+      // Release the mutation guard before another panel schedules its local refresh.
+      if (committed) await onImported();
+      return committed;
     },
   };
 }
 
-export function mountHistory({ client, showSuccess, setExternalBusy }) {
+export function mountHistory({ client, showSuccess, setExternalBusy, onImported }) {
   const panel = document.getElementById('history-card');
   const gamesFile = document.getElementById('history-games-file');
   const ratingsFile = document.getElementById('history-ratings-file');
@@ -109,7 +113,7 @@ export function mountHistory({ client, showSuccess, setExternalBusy }) {
     clearRatings.disabled = busy || !ratingsFile.files.length;
   }
   const controller = createHistoryController({
-    client,
+    client, onImported,
     setBusy(value) { busy = value; setExternalBusy(value); updateControls(); },
     renderPreview(value) {
       approved = value !== null;

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Памятка · Разрешение и Lichess API</title><link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body><main>
+  <nav aria-label="Навигация"><a href="../lessons/0004-lichess-api.html">Урок 04</a><a href="0003-history-import.html">Импорт истории</a></nav>
+  <header><p class="eyebrow">Lichess Training · Памятка</p><h1>Клик → HTTP → сохранение</h1><p class="lead">Открытие экрана и фокус читают локальную базу. Загрузка партий начинается кнопкой.</p></header>
+  <section class="card"><h2>Найти в исходниках</h2><table><thead><tr><th>Файл в extension/</th><th>Обязанность</th></tr></thead><tbody>
+    <tr><td><a href="../extension/manifest.json">manifest.json</a></td><td>Необязательные origin Lichess и authenticationInfo</td></tr>
+    <tr><td><a href="../extension/ui/sync.js">ui/sync.js</a></td><td>permissions.request сразу в click; до пяти порций; остановка между порциями</td></tr>
+    <tr><td><a href="../extension/ui/client.js">ui/client.js</a></td><td>Команда sync.nextBatch через runtime.sendMessage</td></tr>
+    <tr><td><a href="../extension/background.js">background.js</a>, <a href="../extension/app/sync.js">app/sync.js</a></td><td>Повторная проверка доступа, чтение состояния, запрос порции</td></tr>
+    <tr><td><a href="../extension/data/lichess-client.js">data/lichess-client.js</a></td><td>GET, проверка статуса, поток UTF-8 → строки → JSON</td></tr>
+    <tr><td><a href="../extension/core/sync-state.js">core/sync-state.js</a></td><td>Время, порядок, фильтр партий, следующий курсор</td></tr>
+    <tr><td><a href="../extension/data/repository.js">data/repository.js</a></td><td>saveSyncBatch: games и historyMeta в одной транзакции</td></tr>
+  </tbody></table></section>
+  <section class="card"><h2>HTTP и разрешение</h2><ul>
+    <li><code>GET https://lichess.org/api/games/user/sebajun777</code>, <code>Accept: application/x-ndjson</code>, <code>credentials: 'omit'</code>. Токен для этой публичной выгрузки не нужен.</li>
+    <li><code>since</code> и <code>until</code> — миллисекунды Unix; <code>sort=dateAsc</code>, <code>max=200</code>, <code>ongoing=true</code>, <code>finished=true</code>. Отбор завершённых rated standard bullet/blitz/rapid выполняется локально.</li>
+    <li><code>origins: ['https://lichess.org/*']</code> разрешает обращение к хосту. <code>data_collection: ['authenticationInfo']</code> относится к передаче имени профиля. Отказ оставляет журнал доступным.</li>
+    <li>NDJSON — один JSON-объект на непустую строку. Сетевые куски не обязаны совпадать со строками; остаток строки переносится до следующего куска.</li>
+    <li>Лимиты этого клиента: 200 непустых строк, 8 МиБ, 30 секунд на запрос вместе с чтением. HTTP 429 сохраняет паузу минимум на минуту, с учётом более долгого Retry-After. Автоматического повторного запроса после ошибки нет.</li>
+  </ul><p class="sources"><a href="https://lichess.org/api#tag/Games/operation/apiGamesUser">Lichess: экспорт</a> · <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/request">MDN: permissions.request</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch">MDN: fetch и потоки</a>.</p></section>
+  <section class="card"><h2>Окно и курсор</h2><ul>
+    <li><code>coverageStart</code> — постоянная нижняя граница по началу партий: последняя известная партия минус семь дней, либо последние 30 дней при пустой истории. Сначала импортируй исходный датасет, чтобы охватить разрыв с марта.</li>
+    <li><code>cycleUntil</code> — фиксированная верхняя граница незавершённого цикла. Окно <code>[since, until)</code>: начало включено, конец исключён.</li>
+    <li><code>nextSince</code> — начало следующей порции. При 200 строках это последний исходный createdAt включительно; повторы на границе объединяются по ID. Если дата не продвигается, получаем ошибку без объявления полноты.</li>
+    <li><code>completedUntil</code> и <code>lastSuccessAt</code> меняются после полного чтения порции с менее чем 200 строками. Сохранение заполненной порции ещё не означает конец цикла.</li>
+    <li>Новый цикл снова сканирует всё окно от coverageStart, чтобы увидеть поздно завершённые партии. Начавшиеся раньше этой границы остаются вне API-окна.</li>
+  </ul><p>Это алгоритм нашего клиента. Границы по createdAt подтверждены в <a href="https://github.com/lichess-org/lila/blob/01bac66a7f298acc290e4666e50d44a79e5361a3/modules/game/src/main/Query.scala#L128">исходниках Lichess</a>; включение начала и исключение конца — в <a href="https://github.com/lichess-org/lila/blob/01bac66a7f298acc290e4666e50d44a79e5361a3/modules/db/src/main/dsl.scala#L177">реализации диапазона</a>.</p></section>
+  <section class="card"><h2>Что сохраняется</h2><p>Вся порция сначала проверяется. Партии и курсор сохраняются вместе; ошибка отменяет эту транзакцию. Совместимые сведения той же партии обновляются по ID, пропущенные поля не стирают прежние. Уже сохранённые порции переживают остановку и закрытие экрана; продолжение запускается вручную.</p><p>«Сегодня» — день начала партии по Asia/Bishkek. До конца цикла счётчики могут быть неполными. Синхронизация не начисляет XP и не отмечает тренировку. Puzzles остаётся историческим графиком, отметка сегодняшних задач — ручной. Backup v1 содержит только журнал тренировок, без истории и состояния API.</p></section>
+  <footer><p><a href="../lessons/0004-lichess-api.html#practice">Вернуться к практике в Firefox</a> · <a href="https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/">Mozilla: Reload временного расширения</a>.</p></footer>
+</main></body></html>

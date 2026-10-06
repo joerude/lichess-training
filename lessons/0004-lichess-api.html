@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Урок 04 · Кнопка → разрешение → HTTP</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+  <script src="../assets/lesson.js" defer></script>
+</head>
+<body><main>
+  <nav aria-label="Навигация"><a href="0003-history-import.html">Урок 03</a><a href="#practice">Практика</a><a href="#exercise">Самостоятельно</a><a href="../reference/0004-lichess-api.html">Памятка</a></nav>
+  <header><p class="eyebrow">Lichess Training · Firefox · Урок 04</p><h1>Кнопка → разрешение → HTTP</h1>
+    <p class="lead">Проследи один запрос к Lichess и проверь, почему ошибка сети не стирает сохранённые партии.</p>
+    <div class="meta"><span>15–20 минут практики</span><span>Рабочее расширение 0.3.0</span><span>Без токена</span></div>
+  </header>
+  <section class="callout"><p><strong>Твой результат:</strong> находишь в коде начало сетевой операции, читаешь её параметры в Firefox и объясняешь, что сохраняется после успешной порции. Это маршрут для твоей проверки: поведение окон разрешения и загрузки в реальном Firefox ещё нужно наблюдать.</p></section>
+  <section class="card"><h2>Рабочий пример: разрешение начинается с клика</h2>
+    <p>Открытие экрана и возвращение фокуса читают локальный снимок через <code>sync.getSnapshot</code>. Запрос к Lichess начинается кнопкой. Вот сокращённый обработчик из <a href="../extension/ui/sync.js">ui/sync.js</a>:</p>
+    <pre><code>runButton.addEventListener('click', () =&gt; {
+  let permissionPromise;
+  try {
+    permissionPromise = permissions.request({
+      origins: ['https://lichess.org/*'],
+      data_collection: ['authenticationInfo'],
+    });
+  } catch (error) { permissionPromise = Promise.reject(error); }
+  // Результат передаётся контроллеру:
+  void controller.run(permissionPromise);
+});</code></pre>
+    <p><code>permissions.request</code> вызывается прямо во время действия пользователя, до любого <code>await</code>. Сам ответ приходит позже через Promise — обещание результата. <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/request">MDN: запрос разрешения</a>.</p>
+    <p>Здесь два согласия: доступ к <code>https://lichess.org/*</code> и передача имени профиля <code>sebajun777</code>. Они объявлены необязательными в <a href="../extension/manifest.json">manifest.json</a>. Категория Firefox <code>authenticationInfo</code> включает имена пользователей; она не означает, что этот запрос передаёт пароль. <a href="https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/#taxonomy">Mozilla: категории передаваемых данных</a>.</p>
+    <pre><code>Клик → разрешение → sync.nextBatch → фоновый сервис
+  → GET → поток NDJSON → проверка всей порции
+  → одна транзакция: партии + курсор → снимок экрана</code></pre>
+  </section>
+  <section id="practice" class="card"><h2>Предскажи → наблюдай · 8 минут</h2><ol>
+    <li>В Firefox 140+ открой <code>about:debugging</code> → <strong>This Firefox</strong>. Для уже загруженного расширения нажми <strong>Reload</strong>, сохраняя ID <code>lichess-training@local</code>. Если его нет, выбери <strong>Load Temporary Add-on</strong> и <code>extension/manifest.json</code>. Открой журнал из popup. <a href="https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/">Mozilla: установка и Reload</a>.</li>
+    <li>Если оригинальная история ещё не импортирована, сначала пройди сохранение из <a href="0003-history-import.html#practice">урока 03</a>. Тогда начальная граница API будет 8 марта 2026 года: последняя известная партия минус семь дней. Так загрузка заполнит разрыв после датасета. С пустой историей окно начинается лишь за 30 дней до первого обновления. Уже сохранённая граница сама не меняется.</li>
+    <li>Запомни число сохранённых партий и статус тренировки. Запиши прогноз: появится ли HTTP-запрос при открытии экрана? Что произойдёт при отказе в разрешении?</li>
+    <li>В <code>about:debugging</code> нажми <strong>Inspect</strong> у расширения. В toolbox открой <strong>Network</strong>, очисти список и отфильтруй по <code>api/games/user</code>. Обнови вкладку журнала и верни ей фокус. Ожидается отсутствие запросов к API до клика. В <strong>Debugger</strong> можно открыть исходники. <a href="https://extensionworkshop.com/documentation/develop/debugging/">Mozilla: toolbox расширения</a>.</li>
+    <li>Нажми <strong>Подключить Lichess</strong> и сначала откажи. Ожидается сообщение об отказе, прежняя история и отсутствие запроса API. Если согласие уже дано, используй инструкцию ниже для повторения опыта.</li>
+    <li>Нажми кнопку снова и разреши доступ. В Network открой запрос: метод <code>GET</code>, путь <code>/api/games/user/sebajun777</code>, параметры <code>max=200</code>, <code>sort=dateAsc</code>, <code>since</code>, <code>until</code>; заголовок <code>Accept: application/x-ndjson</code>. В успешном ответе каждая непустая строка — отдельный объект партии. Число новых партий заранее неизвестно.</li>
+    <li>Один запуск загружает до пяти порций последовательно. Если появилась кнопка <strong>Продолжить загрузку</strong>, цикл ещё не закончен. Можно продолжить позже; начальная догрузка большого периода займёт больше времени, чем урок. <strong>Остановить после текущей порции</strong> сохраняет текущую порцию перед остановкой.</li>
+  </ol>
+    <details><summary>Разрешение уже дано: как проверить отказ</summary><p>Дождись окончания загрузки. В Console именно toolbox расширения выполни отзыв двух необязательных разрешений:</p>
+      <pre><code>await browser.permissions.remove({
+  origins: ['https://lichess.org/*'],
+  data_collection: ['authenticationInfo'],
+});</code></pre>
+      <p>Вернись в журнал, затем повтори отказ и согласие через кнопку. Отзыв не запрашивает партии и не удаляет историю. <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/remove">MDN: отзыв разрешений</a>.</p>
+    </details>
+  </section>
+  <section class="card"><h2>Что означает успешная порция</h2>
+    <p><a href="../extension/data/lichess-client.js">lichess-client.js</a> делает анонимный GET с <code>credentials: 'omit'</code>. Он проверяет HTTP-статус, читает поток байтов, декодирует UTF-8 и собирает строки NDJSON: сетевой кусок может закончиться посреди строки. Только после полного чтения порция передаётся дальше. <a href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#streaming_the_response_body">MDN: чтение потока</a>; <a href="https://lichess.org/api#tag/Games/operation/apiGamesUser">Lichess: экспорт партий</a>.</p>
+    <p><a href="../extension/core/sync-state.js">sync-state.js</a> проверяет порядок и границы времени всех строк; сохраняет только завершённые rated standard партии bullet/blitz/rapid своего профиля. <a href="../extension/app/sync.js">app/sync.js</a> передаёт проверенные партии и следующий курсор в <code>saveSyncBatch</code>. В <a href="../extension/data/repository.js">repository.js</a> они записываются одной транзакцией: ошибка отменяет всю эту порцию. Ранее сохранённые порции остаются.</p>
+    <p>Курсор — дата начала следующей порции. Верхняя граница <code>until</code> фиксируется для цикла. При 200 исходных строках нужен следующий запрос; при меньшем числе после полного чтения цикл завершён. Следующий новый цикл снова просматривает окно от сохранённой нижней границы: так можно увидеть партию, которая завершилась позже. Повторы объединяются по game ID.</p>
+    <p>«Сегодня» означает день <strong>начала</strong> партии по времени Бишкека. Пока весь период не загружен, счётчики могут быть неполными. API не отмечает тренировку и не начисляет XP. Исторический график Puzzles остаётся прежним; сегодняшние задачи ты по-прежнему отмечаешь вручную.</p>
+  </section>
+  <section id="exercise" class="card"><h2>Самостоятельно · 4 минуты</h2>
+    <p>Без готовой схемы найди в Debugger три места: где команда становится <code>runtime.sendMessage</code>, где <code>fetch</code> получает <code>credentials: 'omit'</code>, где начинается транзакция для партий и курсора. Запиши файл и одну строку доказательства для каждого. Исходники можно читать и в редакторе.</p>
+    <details><summary>Сверь после своей попытки</summary><p><code>ui/client.js</code>: <code>runtime.sendMessage(command)</code>. <code>data/lichess-client.js</code>: вызов <code>fetchImpl</code> с <code>credentials: 'omit'</code>. <code>data/repository.js</code>: внутри <code>saveSyncBatch</code> транзакция <code>['games', 'historyMeta']</code>, режим <code>readwrite</code>.</p></details>
+    <p>Теперь предскажи результат сбоя. Дождись окончания текущей загрузки, запомни число партий и поля «Полностью загружено до» и «Последняя завершённая загрузка периода». Отключи сетевое соединение компьютера, нажми кнопку загрузки и дождись ошибки. Ожидается: эти данные и отметка тренировки сохраняются. Верни сеть; продолжение начинается только по твоему клику. Ошибка не считается пустой успешной порцией.</p>
+  </section>
+  <section id="recall" class="card"><h2>Вспомни без исходников · 2 минуты</h2>
+    <form class="quiz" data-answer="click" data-correct="Да. Запрос разрешения вызывается непосредственно в обработчике клика; ожидание его результата идёт затем." data-incorrect="Firefox требует действие пользователя. Найди permissions.request внутри обработчика click; чтение базы не должно предшествовать этому вызову.">
+      <fieldset><legend>Где вызывается permissions.request, чтобы сохранить действие пользователя?</legend>
+        <label class="choice"><input type="radio" name="permission" value="click"> Сразу внутри обработчика клика</label>
+        <label class="choice"><input type="radio" name="permission" value="storage"> После ожидания чтения базы</label>
+      </fieldset><button type="submit">Проверить</button><p class="feedback" aria-live="polite"></p>
+    </form>
+    <p>Объясни вслух: почему поток байтов не равен строкам NDJSON? Зачем сохранять партии и курсор вместе? Почему после пяти порций число партий сегодня может быть неполным?</p>
+    <details><summary>Подсказка после попытки</summary><p>Границы сетевых кусков произвольны. Общая транзакция не позволяет продвинуть курсор без партий. Пять порций ограничивают один запуск; до конца окна могут оставаться ещё порции.</p></details>
+  </section>
+  <section class="card"><h2>Повтори завтра · 2 минуты</h2><p>Закрой памятку и восстанови путь клик → разрешение → сообщение → HTTP → проверка → транзакция. Затем найди эти места снова. Скажи, что случится с партией, начавшейся внутри окна, но завершившейся после прежней загрузки.</p><p>Резервная копия журнала содержит только отметки тренировок; история и состояние загрузки в неё не входят. Если что-то осталось неясным, задай вопрос по конкретной строке кода или своему наблюдению в Firefox.</p></section>
+  <footer class="sources"><p><a href="../reference/0004-lichess-api.html">Краткая памятка</a> · Для следующего чтения: <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/request">permissions.request: действие пользователя и Promise</a>.</p></footer>
+</main></body></html>

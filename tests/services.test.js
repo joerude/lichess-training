@@ -5,6 +5,7 @@ import { createRepository } from '../extension/data/repository.js';
 import { createServices } from '../extension/app/services.js';
 import { registerTrainingMessages } from '../extension/background-transport.js';
 import { createClient } from '../extension/ui/client.js';
+import { createLichessClient } from '../extension/data/lichess-client.js';
 
 test('one message transport routes history and training to their shared persistent repository', async () => {
   const repository = createRepository({ indexedDB: new IDBFactory() });
@@ -31,4 +32,38 @@ test('one message transport routes history and training to their shared persiste
   assert.equal((await client.request({ type: 'training.getSnapshot' })).today.completed, true);
   await assert.rejects(client.request({ type: 'history.unknown' }), /Неизвестная команда истории/);
   await assert.rejects(client.request(null), /Некорректная команда/);
+});
+
+test('live NDJSON travels through messages into persistent counts without changing training marks', async () => {
+  const repository = createRepository({ indexedDB: new IDBFactory() });
+  const instant = new Date('2026-10-06T06:00:00Z');
+  let requests = 0;
+  const lichess = createLichessClient({ fetchImpl: async (url, options) => {
+    requests++;
+    assert.equal(new URL(url).pathname, '/api/games/user/sebajun777');
+    assert.equal(options.credentials, 'omit');
+    const raw = { id: 'live0001', createdAt: instant.getTime() - 60000, lastMoveAt: instant.getTime() - 1,
+      rated: true, variant: 'standard', speed: 'rapid', status: 'mate', winner: 'black',
+      players: { white: { user: { id: 'opponent' }, rating: 1800 },
+        black: { user: { id: 'sebajun777' }, rating: 1800, ratingDiff: 6 } } };
+    return new Response(`${JSON.stringify(raw)}\n`, { headers: { 'Content-Type': 'application/x-ndjson' } });
+  } });
+  const service = createServices({ repository, lichess, canAccess: async () => true, now: () => instant });
+  let listener;
+  const runtime = { id: 'lichess-training@local', onMessage: { addListener(value) { listener = value; } } };
+  registerTrainingMessages(runtime, service);
+  const client = createClient({ sendMessage: command => listener(command, { id: runtime.id }) });
+  const local = await client.request({ type: 'sync.getSnapshot' });
+  assert.equal(local.today.groups[2].games, 0);
+  assert.equal(requests, 0);
+  assert.equal(await repository.read(), null);
+  const journal = await client.request({ type: 'training.getSnapshot' });
+  await client.request({ type: 'training.setCompletion', day: journal.today.date, completed: true });
+  const before = await repository.read();
+  const loaded = await client.request({ type: 'sync.nextBatch' });
+  assert.equal(loaded.snapshot.today.groups[2].games, 1);
+  assert.equal(loaded.report.added, 1);
+  assert.equal((await client.request({ type: 'history.getOverview' })).groups[2].lastRating, 1806);
+  assert.deepEqual(await repository.read(), before);
+  assert.equal(requests, 1);
 });

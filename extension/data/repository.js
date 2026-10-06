@@ -1,4 +1,22 @@
-// One journal record keeps training updates and backup replacement atomic.
+function mergeSyncedGame(previous, next) {
+  for (const key of ['id', 'username', 'createdAt', 'speed', 'rated', 'variant', 'color']) {
+    if (previous[key] !== next[key]) throw new Error('Противоречащие сведения о той же партии.');
+  }
+  if (previous.opponent.id !== next.opponent.id) throw new Error('У той же партии изменился соперник.');
+  if (next.lastMoveAt < previous.lastMoveAt) return previous;
+  let analysis = null;
+  if (previous.playerAnalysis || next.playerAnalysis) {
+    analysis = Object.fromEntries(['acpl', 'inaccuracy', 'mistake', 'blunder'].map(key =>
+      [key, next.playerAnalysis?.[key] ?? previous.playerAnalysis?.[key] ?? null]));
+  }
+  return { ...previous, ...next,
+    rating: next.rating ?? previous.rating, ratingDiff: next.ratingDiff ?? previous.ratingDiff,
+    moves: next.moves || previous.moves, opening: next.opening ?? previous.opening,
+    opponent: { ...previous.opponent, ...next.opponent, rating: next.opponent.rating ?? previous.opponent.rating },
+    analysed: previous.analysed || next.analysed, playerAnalysis: analysis };
+}
+
+// Journal updates and game synchronization each commit as one transaction.
 export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lichess-training' } = {}) {
   const storeName = 'journal';
   const stateKey = 'state';
@@ -90,7 +108,7 @@ export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lic
     });
   }
 
-  async function readHistory() {
+  async function readHistory(includeSync = false) {
     const database = await open();
     return new Promise((resolve, reject) => {
       const transaction = database.transaction(['games', 'ratings', 'historyMeta'], 'readonly');
@@ -101,6 +119,11 @@ export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lic
       }
       const meta = transaction.objectStore('historyMeta').get('import');
       meta.onsuccess = () => { history.meta = meta.result ?? null; };
+      if (includeSync) {
+        history.sync = null;
+        const sync = transaction.objectStore('historyMeta').get('sync');
+        sync.onsuccess = () => { history.sync = sync.result ?? null; };
+      }
       transaction.oncomplete = () => resolve(history);
       transaction.onabort = () => reject(transaction.error || new Error('Чтение истории отменено.'));
       transaction.onerror = () => {};
@@ -153,5 +176,48 @@ export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lic
     });
   }
 
-  return { read, transact, readHistory, importHistory };
+  async function saveSyncBatch(input) {
+    const batch = structuredClone(input);
+    if (!batch || !Array.isArray(batch.games) || !batch.sync ||
+        !Number.isSafeInteger(batch.expectedRevision) || batch.expectedRevision < 0 ||
+        batch.sync.revision !== batch.expectedRevision + 1) throw new Error('Некорректный пакет обновления.');
+    const ids = new Set();
+    for (const game of Array.from(batch.games)) {
+      if (!game || typeof game.id !== 'string' || !game.id || ids.has(game.id)) throw new Error('Неверный или повторный game ID.');
+      ids.add(game.id);
+    }
+    const database = await open();
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction(['games', 'historyMeta'], 'readwrite');
+      const games = transaction.objectStore('games');
+      const metadata = transaction.objectStore('historyMeta');
+      let added = 0, updated = 0, previousCount = 0, failure;
+      const current = metadata.get('sync');
+      current.onsuccess = () => {
+        try {
+          if ((current.result?.revision ?? 0) !== batch.expectedRevision) throw new Error('История уже изменена другим экраном. Обновите данные и повторите.');
+          const count = games.count();
+          count.onsuccess = () => { previousCount = count.result; };
+          for (const game of batch.games) {
+            const lookup = games.get(game.id);
+            lookup.onsuccess = () => {
+              try {
+                if (!lookup.result) { games.put(game); added += 1; }
+                else {
+                  const merged = mergeSyncedGame(lookup.result, game);
+                  if (JSON.stringify(merged) !== JSON.stringify(lookup.result)) { games.put(merged); updated += 1; }
+                }
+              } catch (error) { failure = error; transaction.abort(); }
+            };
+          }
+          metadata.put(batch.sync, 'sync');
+        } catch (error) { failure = error; transaction.abort(); }
+      };
+      transaction.oncomplete = () => resolve({ added, updated, total: previousCount + added });
+      transaction.onabort = () => reject(failure || transaction.error || new Error('Обновление истории отменено.'));
+      transaction.onerror = () => {};
+    });
+  }
+
+  return { read, transact, readHistory: () => readHistory(), readSyncHistory: () => readHistory(true), importHistory, saveSyncBatch };
 }

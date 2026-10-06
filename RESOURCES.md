@@ -26,6 +26,16 @@
 
 Для урока 03: [MDN: Using IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB) — обновление схемы, ключи и завершение/отмена транзакции. Формат партии: [Lichess GameJson](https://github.com/lichess-org/api/blob/master/doc/specs/schemas/GameJson.yaml).
 
+## Knowledge: разрешения и HTTP
+
+Проверено 6 октября 2026 для урока 04:
+
+- [MDN: permissions.request](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions/request) — запрос доступа в обработчике пользовательского действия.
+- [Mozilla: встроенное согласие на передачу данных](https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/) — необязательная передача имени профиля, включаемая кнопкой.
+- [Lichess: экспорт партий](https://lichess.org/api#tag/Games/operation/apiGamesUser) — публичный GET, NDJSON, временные границы и порядок.
+- [Lichess: API tips](https://lichess.org/page/api-tips) — последовательные запросы и пауза при 429.
+- [MDN: Using Fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch) — HTTP-ответ, поток и отмена запроса.
+
 ## Wisdom (Communities)
 
 Потребность в обсуждениях с сообществом пока не определена.
