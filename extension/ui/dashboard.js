@@ -1,6 +1,10 @@
 import { mountTrainingPage, formatDay, puzzleNoun } from './page.js';
 import { mountHistory } from './history.js';
 import { mountSync } from './sync.js';
+import { mountPractice } from './practice.js';
+
+let practice;
+let trainingLoaded = false;
 
 const page = mountTrainingPage((snapshot) => {
   document.getElementById('completed-days').textContent = snapshot.completedDays;
@@ -28,6 +32,8 @@ const page = mountTrainingPage((snapshot) => {
     fragment.append(item);
   }
   list.replaceChildren(fragment);
+  if (trainingLoaded || practice?.needsRefresh(snapshot.today.date)) void practice?.refresh();
+  trainingLoaded = true;
   document.getElementById('week-summary').textContent = `Отмечено дней: ${entries.filter((day) => day.completed).length} из ${entries.filter((day) => day.scheduled).length}`;
 });
 
@@ -37,10 +43,12 @@ page.setExternalBusy = (value) => {
   externalOperations = Math.max(0, externalOperations + (value ? 1 : -1));
   setPageBusy(externalOperations > 0);
 };
-const history = mountHistory({ ...page, onImported: () => sync.refresh() });
+practice = mountPractice({ client: page.client, setExternalBusy: page.setExternalBusy });
+void practice.refresh();
+const history = mountHistory({ ...page, onImported: () => Promise.all([sync.refresh(), practice.refresh()]) });
 void history.refresh();
 const sync = mountSync({ client: page.client, setExternalBusy: page.setExternalBusy,
-  onHistoryChanged: () => history.refresh() });
+  onHistoryChanged: () => Promise.all([history.refresh(), practice.refresh()]) });
 void sync.refresh();
 
 document.getElementById('export').addEventListener('click', async () => {
@@ -80,21 +88,23 @@ fileInput.addEventListener('change', async () => {
   if (!file) return;
   page.setExternalBusy(true);
   try {
-    if (file.size > 2 * 1024 * 1024) throw new Error('Файл больше 2 МиБ. Выберите резервную копию меньшего размера.');
+    if (file.size > 16 * 1024 * 1024) throw new Error('Файл больше 16 МиБ. Выберите резервную копию меньшего размера.');
     const backup = JSON.parse(await file.text());
-    if (backup?.format !== 'lichess-training-backup' || backup.version !== 1) throw new Error('Формат или версия резервной копии не поддерживается.');
-    const state = backup.state;
-    if (state?.profile?.username !== 'sebajun777' || state.profile.timeZone !== 'Asia/Bishkek' || state.program?.id !== 'daily-puzzles') throw new Error('Выберите копию журнала sebajun777 с программой ежедневной тактики и временем Бишкека.');
-    if (!Array.isArray(state.days) || state.days.length > 10_000 || !Number.isInteger(state.program.target) || state.program.target < 1 || state.program.target > 500) throw new Error('В файле нет поддерживаемого журнала тренировок.');
-    if (state.days.some((day) => !day || typeof day.date !== 'string')) throw new Error('В файле повреждён список дней.');
+    const validated = await page.client.request({ type: 'training.previewImport', backup });
     const preview = document.getElementById('backup-preview');
     preview.replaceChildren();
-    const dates = state.days.map((day) => day.date).sort();
     const fields = [
-      ['Файл', file.name], ['Профиль', state.profile.username], ['Часовой пояс', 'Бишкек (UTC+6)'],
-      ['Дней в файле', state.days.length], ['С отметкой выполнения', state.days.filter((day) => day.completedAt !== null).length],
-      ['Период записей', dates.length ? `${dates[0]} — ${dates.at(-1)}` : 'Нет записей'], ['Ежедневная цель', `${state.program.target} ${puzzleNoun(state.program.target)}`],
+      ['Файл', file.name], ['Версия копии', validated.version], ['Профиль', validated.profile.username],
+      ['Часовой пояс', 'Бишкек (UTC+6)'], ['Создана', validated.exportedAt],
+      ['Дней в файле', validated.days], ['С отметкой задач', validated.completedDays],
+      ['Цель задач', `${validated.puzzleTarget} ${puzzleNoun(validated.puzzleTarget)}`],
+      ['Начало отметок задач', validated.programStartedOn || 'Не задано'],
+      ['Начало ежедневной программы', validated.startedOn || 'Текущая программа сохраняется'],
+      ['Правил норм', validated.ruleCount], ['Собственных разборов', validated.reviewCount], ['XP', validated.totalXp],
     ];
+    document.getElementById('restore-description').textContent = validated.replacesPractice
+      ? 'Эта копия заменит отметки задач, ежедневную программу, нормы, собственные разборы и награды. История партий, рейтинги и состояние загрузки сохраняются. Скачайте текущую копию, если хотите сохранить обе версии.'
+      : 'Копия версии 1 заменит только отметки задач. Текущая ежедневная программа, нормы и собственные разборы сохраняются; XP за задачи пересчитается. История партий, рейтинги и состояние загрузки сохраняются.';
     for (const [label, value] of fields) {
       const term = document.createElement('dt');
       const detail = document.createElement('dd');

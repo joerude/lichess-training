@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Памятка · Программа и XP</title><link rel="stylesheet" href="../assets/lesson.css"></head>
+<body><main><nav aria-label="Навигация"><a href="../lessons/0005-daily-program.html">Урок 05</a><a href="0004-lichess-api.html">Lichess API</a></nav><header><p class="eyebrow">Lichess Training · Памятка</p><h1>Факты → награды → уровень</h1><p class="lead">5 Bullet, 5 Blitz, 10 задач, 1 разбор. Настройки действуют со следующего дня по Бишкеку.</p></header>
+<section class="card"><h2>Найти в коде</h2><table><thead><tr><th>Модуль</th><th>Что проверять</th></tr></thead><tbody>
+<tr><td><a href="../extension/core/practice-engine.js">core/practice-engine.js</a></td><td>Выполнение по фактам, стабильные ID, будущие правила, заметки и вычисляемый уровень</td></tr>
+<tr><td><a href="../extension/core/practice-validation.js">core/practice-validation.js</a></td><td>Диапазоны норм, даты, UTF-8 и версии записей</td></tr>
+<tr><td><a href="../extension/core/practice-backup.js">core/practice-backup.js</a></td><td>Полная проверка backup до записи; V1/V2</td></tr>
+<tr><td><a href="../extension/app/practice.js">app/practice.js</a></td><td>Показанный день, согласование фактов, команда и сохранение</td></tr>
+<tr><td><a href="../extension/data/repository.js">data/repository.js</a></td><td>transactPractice: state + practice вместе, ответ после complete</td></tr>
+</tbody></table></section>
+<section class="card"><h2>Правила наград</h2><pre><code>ID = startedOn:date:taskId
+XP = 20 за выполненное задание дня
+level = 1 + floor(totalXp / 100)
+nextLevelXp = 100 - totalXp % 100</code></pre><p>Повторное чтение использует прежний ID. Отмена ручной отметки пересчитывает XP. Разбор старой партии считается в день первого сохранения заметки; правка сохраняет эту дату и требует её текущую revision.</p><p>Награды за игры остаются достижениями при восстановлении без истории. Выполнение заданий и календарь программы вычисляются из доступных фактов; до импорта история может показывать меньше игр, чем было при получении XP.</p></section>
+<section class="card"><h2>Копия и транзакция</h2><p>Backup V2 переносит отметки, правила, заметки и награды. V1 заменяет только отметки задач и сохраняет новую программу. Ни одна версия не заменяет игры, рейтинги и курсор API.</p><p>Проверка всего файла идёт до транзакции. Две записи journal сохраняются вместе; ошибка откатывает обе. Успех put — промежуточный результат, complete — завершённая транзакция. <a href="https://developer.mozilla.org/en-US/docs/Web/API/IDBTransaction/complete_event">MDN: complete</a>.</p><p>Новая партия может сохраниться раньше пересчёта программы. Следующее локальное чтение восстановит награду; HTTP для этого не нужен.</p></section>
+<footer class="sources"><p><a href="../lessons/0005-daily-program.html#exercise">Упражнение: изменить порог уровня</a> · <a href="../docs/plans/2026-10-06-daily-program.md">Контракты этапа</a></p></footer></main></body></html>

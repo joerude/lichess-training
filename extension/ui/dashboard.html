@@ -16,9 +16,21 @@
       <div class="header-meta"><span class="local-label"><span aria-hidden="true">●</span> Локальный журнал</span><span id="username">sebajun777</span></div>
     </header>
     <main>
-      <div class="page-heading"><div><p class="eyebrow">ПРАКТИКА КАЖДЫЙ ДЕНЬ</p><h1>Время сделать ход.</h1><p class="muted">Одна небольшая задача. Ещё один день за доской.</p></div><button id="refresh" class="button button-quiet" type="button">Обновить</button></div>
+      <div class="page-heading"><div><p class="eyebrow">ПРАКТИКА КАЖДЫЙ ДЕНЬ</p><h1>Время сделать ход.</h1><p class="muted">Партии, задачи и собственный разбор — по вашим ежедневным нормам.</p></div><button id="refresh" class="button button-quiet" type="button">Обновить</button></div>
       <div id="error" class="message message-error" role="alert" hidden></div>
       <p id="notice" class="message message-success" role="status" hidden></p>
+      <section id="program-card" class="card program-card" aria-labelledby="program-heading" aria-busy="true">
+        <div class="section-heading"><div><p class="eyebrow">ЕЖЕДНЕВНАЯ ПРОГРАММА</p><h2 id="program-heading">Партии, задачи и собственный разбор</h2></div><time id="program-date">Загрузка…</time></div>
+        <p id="program-summary" class="program-summary" role="status">Загружаем программу…</p>
+        <p id="program-error" class="message message-error" role="alert" hidden></p>
+        <div class="program-rewards"><p id="program-xp" class="program-xp">— XP</p><p id="program-level" class="muted"></p></div>
+        <p id="program-start" class="caption"></p>
+        <ul id="program-tasks" class="program-tasks" aria-label="Задания на сегодня"></ul>
+        <p id="program-xp-note" class="caption"></p>
+        <div class="section-heading program-week-heading"><h3>Неделя ежедневной программы</h3><p id="program-week-summary" class="muted"></p></div>
+        <ol id="program-week" class="week-grid" aria-label="Все задания программы за семь дней"></ol>
+        <p class="caption">✓ Все задания дня выполнены · ○ Не все задания · — До начала программы</p>
+      </section>
       <div class="overview-grid">
         <section id="today-card" class="card today-card" aria-labelledby="today-heading" aria-busy="true">
           <div class="card-top"><p class="eyebrow" id="today-heading">СЕГОДНЯ</p><time id="today-date">Загрузка…</time></div>
@@ -28,14 +40,14 @@
           <p class="caption">Отметка вручную · День по времени Бишкека (UTC+6)</p>
         </section>
         <aside class="summary-stack">
-          <section class="card total-card" aria-labelledby="total-heading"><p class="eyebrow" id="total-heading">ВЫПОЛНЕНО ДНЕЙ</p><p id="completed-days" class="total-number">—</p><p class="muted">За всё время в вашем журнале</p><div class="fine-rule"></div><p class="caption">Каждая отметка — день, когда вы уделили время шахматам.</p></section>
+          <section class="card total-card" aria-labelledby="total-heading"><p class="eyebrow" id="total-heading">ОТМЕТОК ТАКТИКИ</p><p id="completed-days" class="total-number">—</p><p class="muted">За всё время в вашем журнале</p><div class="fine-rule"></div><p class="caption">Каждая отметка — день, когда вы уделили время шахматам.</p></section>
           <section class="practice-note"><span class="note-symbol" aria-hidden="true">♙</span><div><h2>Начните с малого</h2><p>Это стартовое упражнение для привычки, а не персональная рекомендация по тренировкам.</p></div></section>
         </aside>
       </div>
-      <section class="card week-card" aria-labelledby="week-heading"><div class="section-heading"><div><p class="eyebrow">РИТМ ПРАКТИКИ</p><h2 id="week-heading">Последние семь дней</h2></div><p id="week-summary" class="muted">Загрузка…</p></div><ol id="week" class="week-grid" aria-label="Выполнение за последние семь дней"></ol><p class="caption week-legend"><span>✓ Выполнено</span><span>○ Не отмечено</span><span>— До начала программы</span></p></section>
+      <section class="card week-card" aria-labelledby="week-heading"><div class="section-heading"><div><p class="eyebrow">РИТМ ПРАКТИКИ</p><h2 id="week-heading">Отметки задач за семь дней</h2></div><p id="week-summary" class="muted">Загрузка…</p></div><ol id="week" class="week-grid" aria-label="Ручные отметки задач за последние семь дней"></ol><p class="caption week-legend"><span>✓ Выполнено</span><span>○ Не отмечено</span><span>— До начала программы</span></p></section>
       <section id="sync-card" class="card sync-card" aria-labelledby="sync-heading" aria-busy="false">
         <div class="section-heading"><div><p class="eyebrow">ПАРТИИ С LICHESS</p><h2 id="sync-heading">Свежие партии</h2></div><time id="sync-date">Загрузка…</time></div>
-        <p class="muted sync-description">Партии за сегодня из загруженной истории · время Бишкека. Это сохранённые факты, а не выполнение задач или опыт.</p>
+        <p class="muted sync-description">Партии за сегодня из загруженной истории · время Бишкека. Завершённые rated standard партии учитываются в ежедневной программе; награда выдаётся за достижение нормы.</p>
         <dl class="sync-counts" aria-label="Загруженные партии за сегодня">
           <div><dt>Bullet</dt><dd id="sync-bullet">—</dd></div>
           <div><dt>Blitz</dt><dd id="sync-blitz">—</dd></div>
@@ -77,10 +89,28 @@
           <p class="caption history-import-note">Повторный импорт не добавляет уже сохранённые партии. Без нового файла рейтингов прежние серии сохраняются. Отметки тренировок хранятся отдельно.</p>
         </div>
       </section>
-      <section class="card backup-card" aria-labelledby="backup-heading"><div><p class="eyebrow">ВАШИ ДАННЫЕ</p><h2 id="backup-heading">Копия отметок тренировок</h2><p class="muted">Сохраните отметки, чтобы перенести или восстановить их в Firefox. Историю партий можно снова импортировать из исходных файлов; она не входит в эту копию.</p></div><div class="backup-actions"><button id="export" class="button button-secondary" type="button" data-write-control disabled>Скачать JSON</button><button id="restore" class="button button-quiet" type="button" data-write-control disabled>Восстановить из файла</button><input id="backup-file" type="file" accept=".json,application/json" hidden></div></section>
+      <section class="card program-card" aria-labelledby="goals-heading">
+        <p class="eyebrow">НОРМЫ НА ЗАВТРА</p><h2 id="goals-heading">Настроить программу</h2>
+        <p id="goals-effective" class="muted form-copy"></p>
+        <form id="goals-form"><div class="goals-grid">
+          <div><label for="goal-bullet">Bullet</label><input id="goal-bullet" type="number" min="0" max="100" step="1" required disabled></div>
+          <div><label for="goal-blitz">Blitz</label><input id="goal-blitz" type="number" min="0" max="100" step="1" required disabled></div>
+          <div><label for="goal-rapid">Rapid</label><input id="goal-rapid" type="number" min="0" max="100" step="1" required disabled></div>
+          <div><label for="goal-puzzles">Задачи</label><input id="goal-puzzles" type="number" min="1" max="500" step="1" required disabled></div>
+          <div><label for="goal-reviews">Свои разборы</label><input id="goal-reviews" type="number" min="0" max="10" step="1" required disabled></div>
+        </div><p class="caption form-copy">0 отключает контроль или разборы; задачи обязательны. Награда — 20 XP за каждое включённое задание.</p><p id="goals-draft-day" class="caption"></p><p id="goals-error" class="message message-error" role="alert" hidden></p><p id="goals-notice" class="message message-success" role="status" hidden></p><div class="form-actions"><button id="goals-save" class="button button-primary" type="submit" disabled>Сохранить на завтра</button><button id="goals-reset" class="button button-quiet" type="button" disabled>Начать форму заново</button></div></form>
+      </section>
+      <section class="card program-card" aria-labelledby="reviews-heading">
+        <p class="eyebrow">СВОИ ЗАМЕТКИ</p><h2 id="reviews-heading">Собственный разбор партии</h2>
+        <p class="muted form-copy">Что решили за доской, где ошиблись и что проверите в следующей партии? Компьютерный анализ сам не выполняет это задание.</p>
+        <form id="review-form" class="review-form"><div><label for="review-game">ID партии</label><input id="review-game" type="text" list="review-options" pattern="[A-Za-z0-9]{8}" minlength="8" maxlength="8" required autocomplete="off" aria-describedby="review-game-hint" disabled><datalist id="review-options"></datalist><p id="review-game-hint" class="caption">8 символов из ссылки lichess.org/ID. Подсказки — 30 последних партий; можно ввести ID любой сохранённой завершённой rated standard Bullet, Blitz или Rapid.</p></div><div><label for="review-note">Ваш разбор</label><textarea id="review-note" rows="5" required aria-describedby="review-note-hint" disabled></textarea><p id="review-note-hint" class="caption">Одна заметка на партию · До 4 000 байт UTF-8 · До 1 000 заметок</p></div><p id="review-mode" class="caption">Новый разбор засчитывается в день сохранения. Редактирование сохраняет первоначальный день.</p><p id="review-error" class="message message-error" role="alert" hidden></p><p id="review-notice" class="message message-success" role="status" hidden></p><div class="form-actions"><button id="review-save" class="button button-primary" type="submit" disabled>Сохранить разбор</button><button id="review-new" class="button button-quiet" type="button" disabled>Начать новый разбор</button></div></form>
+        <p id="review-delete-error" class="message message-error" role="alert" hidden></p>
+        <p id="reviews-empty" class="muted form-copy">Собственных разборов пока нет.</p><ul id="review-list" class="review-list" aria-label="Сохранённые собственные разборы"></ul>
+      </section>
+      <section class="card backup-card" aria-labelledby="backup-heading"><div><p class="eyebrow">ВАШИ ДАННЫЕ</p><h2 id="backup-heading">Копия программы и разборов</h2><p class="muted">Сохраните нормы, разборы, награды и отметки задач, чтобы перенести или восстановить их в Firefox. Историю партий можно снова импортировать из исходных файлов; она не входит в эту копию.</p></div><div class="backup-actions"><button id="export" class="button button-secondary" type="button" data-write-control disabled>Скачать JSON</button><button id="restore" class="button button-quiet" type="button" data-write-control disabled>Восстановить из файла</button><input id="backup-file" type="file" accept=".json,application/json" hidden></div></section>
     </main>
     <footer class="app-footer"><span>sebajun777 · Личная шахматная практика</span><span>Журнал хранится в браузере</span></footer>
   </div>
-  <dialog id="restore-dialog" class="restore-dialog" aria-labelledby="restore-heading" aria-describedby="restore-description"><div class="dialog-body"><p class="eyebrow">ВОССТАНОВЛЕНИЕ ОТМЕТОК</p><h2 id="restore-heading">Проверьте копию отметок</h2><p id="restore-description" class="muted">Текущие отметки тренировок будут полностью заменены. Сначала скачайте их копию, если хотите сохранить обе версии. История партий сохраняется.</p><dl id="backup-preview" class="backup-preview"></dl><p class="caption">Файл будет проверен перед сохранением. Отметки заменятся только после успешной проверки.</p><p id="restore-error" class="message message-error" role="alert" hidden></p><div class="dialog-actions"><button id="cancel-restore" class="button button-secondary" type="button">Отмена</button><button id="replace" class="button button-primary" type="button">Заменить отметки</button></div></div></dialog>
+  <dialog id="restore-dialog" class="restore-dialog" aria-labelledby="restore-heading" aria-describedby="restore-description"><div class="dialog-body"><p class="eyebrow">ВОССТАНОВЛЕНИЕ ЖУРНАЛА</p><h2 id="restore-heading">Проверьте резервную копию</h2><p id="restore-description" class="muted">Текущие отметки тренировок будут полностью заменены. Сначала скачайте их копию, если хотите сохранить обе версии. История партий сохраняется.</p><dl id="backup-preview" class="backup-preview"></dl><p class="caption">Файл проверен без сохранения. Замена произойдёт только после подтверждения и успешного сохранения.</p><p id="restore-error" class="message message-error" role="alert" hidden></p><div class="dialog-actions"><button id="cancel-restore" class="button button-secondary" type="button">Отмена</button><button id="replace" class="button button-primary" type="button">Восстановить копию</button></div></div></dialog>
 </body>
 </html>

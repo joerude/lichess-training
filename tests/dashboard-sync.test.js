@@ -36,7 +36,10 @@ function dashboardDocument() {
       replaceChildren(...children) { this.children = children; },
       querySelector(selector) { return document.querySelector(selector); },
       addEventListener(type, handler) { if (!handlers.has(type)) handlers.set(type, []); handlers.get(type).push(handler); },
-      dispatch(type) { for (const handler of handlers.get(type) || []) handler(); },
+      async dispatch(type) { for (const handler of handlers.get(type) || []) await handler({ preventDefault() {} }); },
+      focus() {},
+      showModal() { this.open = true; },
+      close() { this.open = false; void this.dispatch('close'); },
     };
   }
   return { document, window: makeNode() };
@@ -63,6 +66,8 @@ test('dashboard history import immediately refreshes stored sync counts, total a
   await import('../extension/ui/dashboard.js');
   const element = (id) => dom.document.getElementById(id);
   await waitFor(() => element('sync-total').textContent.includes('0 партий') && !element('history-preview-button').disabled);
+  await waitFor(() => element('program-summary').textContent.includes('XP') && !element('completion').disabled);
+  assert.equal(commands.filter((type) => type === 'program.getSnapshot').length, 1, 'initial page render must not duplicate program reads');
   const initialCoverage = element('sync-coverage').textContent;
   const raw = { id: 'import01', rated: true, variant: 'standard', speed: 'bullet', status: 'mate',
     createdAt: Date.parse('2026-10-06T17:58:59Z'), lastMoveAt: Date.parse('2026-10-06T17:59:58Z'), winner: 'white',
@@ -83,4 +88,41 @@ test('dashboard history import immediately refreshes stored sync counts, total a
   assert.equal(commands.filter((type) => type === 'history.getOverview').length, 1);
   assert.equal(commands.includes('sync.nextBatch'), false);
   assert.ok(commands.lastIndexOf('sync.getSnapshot') > commands.indexOf('history.import'));
+  await waitFor(() => element('program-tasks').children[0]?.children[1]?.textContent === '1 из 5');
+  const baselineBackup = await services.handle({ type: 'training.export' });
+  element('review-game').value = 'import01';
+  await element('review-game').dispatch('input');
+  element('review-note').value = 'Проверю угрозы перед ходом';
+  await element('review-note').dispatch('input');
+  await element('review-form').dispatch('submit');
+  assert.equal(element('review-list').children.length, 1);
+  await element('completion').dispatch('click');
+  await waitFor(() => !element('completion').disabled && element('today-status').textContent.includes('выполнена'));
+  const loadBackup = async (backup) => {
+    const backupText = JSON.stringify(backup);
+    element('backup-file').files = [{ name: 'backup.json', size: backupText.length, text: async () => backupText }];
+    await element('backup-file').dispatch('change');
+    assert.equal(element('restore-dialog').open, true);
+    assert.equal(commands.at(-1), 'training.previewImport');
+  };
+  await loadBackup({ format: baselineBackup.format, version: 1, exportedAt: baselineBackup.exportedAt, state: baselineBackup.state });
+  assert.match(element('restore-description').textContent, /только отметки задач/);
+  assert.match(element('restore-description').textContent, /собственные разборы сохраняются/);
+  assert.equal((await services.handle({ type: 'program.getSnapshot' })).reviews.length, 1, 'preview must not modify current reviews');
+  await element('replace').dispatch('click');
+  await waitFor(() => !element('restore-dialog').open && element('program-tasks').children[2]?.children[1]?.textContent === '0 из 10');
+  assert.equal((await services.handle({ type: 'program.getSnapshot' })).reviews.length, 1, 'legacy restore preserves own reviews');
+  await loadBackup(baselineBackup);
+  assert.match(element('restore-description').textContent, /собственные разборы и награды/);
+  assert.match(element('restore-description').textContent, /История партий, рейтинги и состояние загрузки сохраняются/);
+  await element('replace').dispatch('click');
+  await waitFor(() => !element('restore-dialog').open && element('review-list').children.length === 0);
+  assert.equal((await services.handle({ type: 'history.getOverview' })).totalGames, 1, 'backup restore must not erase game history');
+  assert.equal((await services.handle({ type: 'sync.getSnapshot' })).today.groups[0].games, 1);
+  assert.equal(commands.filter((type) => type === 'sync.getSnapshot').length, 2, 'backup restore does not repeat sync reads');
+  assert.equal(commands.filter((type) => type === 'training.previewImport').length, 2);
+  element('backup-file').files = [{ name: 'oversized.json', size: 16 * 1024 * 1024 + 1, text: () => assert.fail('oversized backup must not be read') }];
+  await element('backup-file').dispatch('change');
+  assert.match(element('error').textContent, /16 МиБ/);
+  assert.equal(commands.filter((type) => type === 'training.previewImport').length, 2);
 });

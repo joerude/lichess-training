@@ -130,6 +130,43 @@ export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lic
     });
   }
 
+  async function practiceTransaction(update) {
+    const database = await open();
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction(['journal', 'games', 'historyMeta'], update ? 'readwrite' : 'readonly');
+      const journal = transaction.objectStore('journal');
+      let result = { journal: null, practice: null, games: [], sync: null };
+      let remaining = 4;
+      let failure;
+      for (const [key, request] of [
+        ['journal', journal.get(stateKey)], ['practice', journal.get('practice')],
+        ['games', transaction.objectStore('games').getAll()],
+        ['sync', transaction.objectStore('historyMeta').get('sync')],
+      ]) {
+        request.onsuccess = () => {
+          result[key] = request.result ?? (key === 'games' ? [] : null);
+          if (--remaining !== 0 || !update) return;
+          try {
+            const records = update(result);
+            if (records && typeof records.then === 'function') throw new Error('The practice updater must be synchronous.');
+            for (const name of ['journal', 'practice']) {
+              if (!records?.[name] || typeof records[name] !== 'object' || Array.isArray(records[name])) {
+                throw new Error('Некорректные записи программы.');
+              }
+            }
+            const saved = structuredClone({ journal: records.journal, practice: records.practice });
+            journal.put(saved.journal, stateKey);
+            journal.put(saved.practice, 'practice');
+            result = { ...result, ...saved };
+          } catch (error) { failure = error; transaction.abort(); }
+        };
+      }
+      transaction.oncomplete = () => resolve(result);
+      transaction.onabort = () => reject(failure || transaction.error || new Error('Сохранение программы отменено (abort).'));
+      transaction.onerror = () => {};
+    });
+  }
+
   async function importHistory(input) {
     const batch = structuredClone(input);
     if (!batch || !Array.isArray(batch.games) || (batch.ratings !== null && !Array.isArray(batch.ratings)) ||
@@ -219,5 +256,11 @@ export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lic
     });
   }
 
-  return { read, transact, readHistory: () => readHistory(), readSyncHistory: () => readHistory(true), importHistory, saveSyncBatch };
+  return { read, transact, readHistory: () => readHistory(), readSyncHistory: () => readHistory(true), importHistory, saveSyncBatch,
+    readPractice: () => practiceTransaction(),
+    transactPractice(update) {
+      if (typeof update !== 'function') return Promise.reject(new Error('Нужна функция изменения программы.'));
+      return practiceTransaction(update);
+    },
+  };
 }

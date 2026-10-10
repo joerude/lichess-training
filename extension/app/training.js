@@ -1,11 +1,12 @@
 import { trainingDay, initialState, setCompletion, snapshotFrom, normalizeBackup, backupFrom } from '../core/training-engine.js';
 
-export function createTrainingService({ repository, now = () => new Date() }) {
+export function createTrainingService({ repository, practice, now = () => new Date() }) {
   async function handle(command) {
     // Capture once before any asynchronous storage work; use the same instant throughout.
     const instant = new Date(now().getTime());
     const today = trainingDay(instant);
     if (!command || typeof command !== 'object') throw new Error('Некорректная команда.');
+    if (practice) return practice.handleTraining(command, instant);
     let state;
     switch (command.type) {
       case 'training.getSnapshot':

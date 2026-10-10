@@ -22,7 +22,7 @@ flowchart LR
 
 Общий обработчик карточки дня находится в `ui/page.js`; его подключают и popup, и dashboard. Страницы отправляют команды через `ui/client.js` и `browser.runtime.sendMessage`. `background.js` регистрирует обработчик из `background-transport.js`; `app/services.js` направляет команду сервису тренировок. Сервис выбирает день в часовом поясе программы и сохраняет изменения в IndexedDB. Поэтому закрытие popup не стирает отметку. Фоновая страница может выгружаться из памяти: источником состояния остаётся база.
 
-Журнал тренировок хранится одной записью. В версии 0.2.0 партии получили отдельные записи и индексы; большой датасет не входит в этот журнал или пакет расширения.
+Отметки задач хранятся одной записью state в store journal. В версии 0.4.0 соседний ключ practice содержит нормы, собственные заметки и награды; связанные изменения сохраняются одной транзакцией. В версии 0.2.0 партии получили отдельные записи и индексы; большой датасет не входит в этот журнал или пакет расширения.
 
 ## Упражнение 1: найди границу интерфейса
 
@@ -36,7 +36,7 @@ flowchart LR
 
 ## Упражнение 2: проследи команду
 
-Найди обработчик кнопки выполнения в `extension/ui/page.js`. Проследи путь от `training.setCompletion` через `extension/ui/client.js`, `extension/background-transport.js` (подключён из `background.js`), `extension/app/services.js` и `extension/app/training.js` к `extension/data/repository.js`. `dashboard.js` дополняет общую карточку историей и резервными копиями.
+Найди обработчик кнопки выполнения в `extension/ui/page.js`. Проследи путь от `training.setCompletion` через `extension/ui/client.js`, `extension/background-transport.js` (подключён из `background.js`), `extension/app/services.js` и `extension/app/training.js` через `extension/app/practice.js` к `extension/data/repository.js`. `dashboard.js` дополняет общую карточку историей и резервными копиями.
 
 Ответь своими словами:
 
@@ -50,7 +50,7 @@ flowchart LR
 
 Экспортируй JSON, открой его в редакторе и найди дату и `completedAt`. Затем сними сегодняшнюю отметку и восстанови сохранённую копию через предварительный просмотр. Восстановление заменяет текущий журнал, поэтому для эксперимента сначала сохрани актуальную копию.
 
-Пока не меняй `program.target` в коде как способ настроить уже начатую программу: начальные значения применяются только к новой базе. Редактирование норм с будущего дня будет отдельным поведением программы.
+Для настройки уже начатой программы используй форму норм на основном экране: изменения действуют с завтра. Начальные значения в коде применяются только при создании новой программы.
 
 Продолжение — [урок 03: импорт настоящего lichess_dataset](../../lessons/0003-history-import.html). Освоение будет записано в NOTES только после практической проверки.
 
@@ -59,3 +59,5 @@ flowchart LR
 - [Mozilla: anatomy of an extension](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Anatomy_of_a_WebExtension)
 - [Mozilla: background scripts and event pages](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background)
 - [Mozilla: временная установка](https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/)
+
+Программа с несколькими заданиями, собственным разбором и XP объясняется в [уроке 05](../../lessons/0005-daily-program.html).
