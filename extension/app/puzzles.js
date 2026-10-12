@@ -20,10 +20,14 @@ export function createPuzzleService({ repository, practice, lichess, canAccess =
     const stored = await repository.readPuzzleReading();
     let status = 'ok';
     let count = null;
+    let reason = null;
     if (!await canAccess()) status = 'no-permission';
     else if (shouldFetchPuzzles(stored, checkedAt, trainingDay(checkedAt))) {
       try { count = await lichess.fetchPuzzleCount(); }
-      catch (error) { status = failureStatus(error); }
+      catch (error) {
+        status = failureStatus(error);
+        reason = error instanceof Error ? error.message : String(error);
+      }
     }
     // Record with the time after the request, so a reading taken after midnight starts the new day.
     const instant = readClock();
@@ -31,7 +35,7 @@ export function createPuzzleService({ repository, practice, lichess, canAccess =
     const { records, autoCompleted } = await practice.recordPuzzleCount(instant, count);
     const day = snapshotFrom(records.journal, today).today;
     const solved = solvedToday(records.puzzles, today);
-    return { status, date: today, solved, target: day.target, completed: day.completed, source: day.source,
+    return { status, reason, date: today, solved, target: day.target, completed: day.completed, source: day.source,
       baselineAt: solved === null ? null : records.puzzles.baselineAt,
       observedAt: solved === null ? null : records.puzzles.observedAt, autoCompleted };
   }

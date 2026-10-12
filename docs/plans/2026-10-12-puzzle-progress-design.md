@@ -67,7 +67,8 @@ Backup v2: валидация должна принимать оба новых 
 
 ## Сообщения
 
-- `puzzles.refresh` → `{ status, date, solved, target, baselineAt, observedAt, completed, source, autoCompleted }`. Может пойти в сеть (с учётом 60 с). Выполняет автоотметку; `autoCompleted: true`, если отметка поставлена этим вызовом. `solved`, `baselineAt`, `observedAt` равны `null`, если показания за сегодня нет.
+- `puzzles.refresh` → `{ status, reason, date, solved, target, baselineAt, observedAt, completed, source, autoCompleted }`. Может пойти в сеть (с учётом 60 с). Выполняет автоотметку; `autoCompleted: true`, если отметка поставлена этим вызовом. `solved`, `baselineAt`, `observedAt` равны `null`, если показания за сегодня нет.
+- `reason` — текст ошибки запроса при `offline`, `rate-limited` или `no-data`, иначе `null`; карточка показывает его подсказкой у строки времени.
 - `status`: `'ok' | 'no-permission' | 'offline' | 'rate-limited' | 'no-data'`. При ошибке или без доступа возвращаются последние сохранённые числа, если они за сегодня.
 
 Popup вызывает `puzzles.refresh` при открытии, по ↻ и после ручной отметки, отмены или смены дня в открытом popup. Основной экран вызывает его при открытии, возврате фокуса и по кнопке «Открыть задачи», ничего не рисует, а при `autoCompleted` перечитывает тренировку и программу (решение владельца от 2026-10-12). Одновременные вызовы делят один запрос. При `autoCompleted` popup перечитывает карточку тренировки и строку программы. Если показание есть, но запрос не удался, подпись времени дополняется «· данные могли устареть».

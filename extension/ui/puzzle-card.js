@@ -62,6 +62,7 @@ export function mountPuzzleCard({ client, document = globalThis.document, onAuto
     meta.textContent = known
       ? `счёт с ${formatClock(value.baselineAt)} · обновлено ${formatClock(value.observedAt)}${value.status === 'ok' ? '' : ' · данные могли устареть'}`
       : '';
+    meta.title = value.reason ?? '';
     box.hidden = false;
   }
 

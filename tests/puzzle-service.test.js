@@ -28,6 +28,7 @@ test('the first refresh sets the baseline and later readings show progress', asy
   const f = fixture({ counts: [894, 898] });
   const first = await refresh(f.service);
   assert.deepEqual([first.status, first.date, first.solved, first.target, first.completed], ['ok', '2026-10-12', 0, 10, false]);
+  assert.equal(first.reason, null);
   assert.equal(first.baselineAt, '2026-10-12T03:14:00.000Z');
   f.at('2026-10-12T04:02:00Z');
   const second = await refresh(f.service);
@@ -79,10 +80,10 @@ test('network failures keep the last reading for today and name the reason', asy
   const missing = Object.assign(new Error('missing'), { code: 'no-data' });
   const f = fixture({ counts: [894, new Error('offline'), pause, missing] });
   await refresh(f.service);
-  for (const [time, status] of [['2026-10-12T04:00:00Z', 'offline'], ['2026-10-12T04:02:00Z', 'rate-limited'], ['2026-10-12T04:04:00Z', 'no-data']]) {
+  for (const [time, status, reason] of [['2026-10-12T04:00:00Z', 'offline', 'offline'], ['2026-10-12T04:02:00Z', 'rate-limited', 'pause'], ['2026-10-12T04:04:00Z', 'no-data', 'missing']]) {
     f.at(time);
     const result = await refresh(f.service);
-    assert.deepEqual([result.status, result.solved, result.observedAt], [status, 0, '2026-10-12T03:14:00.000Z']);
+    assert.deepEqual([result.status, result.solved, result.observedAt, result.reason], [status, 0, '2026-10-12T03:14:00.000Z', reason]);
   }
 });
 

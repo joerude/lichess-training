@@ -137,3 +137,12 @@ test('the reader takes a reading without a card and reports automatic marks and 
   assert.equal(await reader.refresh(), null);
   assert.deepEqual(errors, ['Disk full']);
 });
+
+test('the failure reason is available as a tooltip on the time caption', async () => {
+  const failed = fixture(async () => reading({ status: 'offline', reason: 'Ошибка запроса к Lichess (HTTP 500).' }));
+  await failed.card.refresh();
+  assert.equal(failed.node('puzzle-meta').title, 'Ошибка запроса к Lichess (HTTP 500).');
+  const fresh = fixture(async () => reading());
+  await fresh.card.refresh();
+  assert.equal(fresh.node('puzzle-meta').title, '');
+});
