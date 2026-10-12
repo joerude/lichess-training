@@ -112,6 +112,12 @@ h2 { font-size: 20px; line-height: 1.3; font-weight: 600; letter-spacing: -.025e
 .popup-card .task-status { margin: 15px 0; }
 .popup-card .button { width: 100%; }
 .popup-card .button-secondary { margin-top: 8px; }
+.puzzle-progress { margin-top: 12px; }
+.puzzle-progress progress { display: block; width: 100%; height: 8px; accent-color: var(--green); }
+.puzzle-progress progress[hidden] { display: none; }
+.puzzle-phrase { margin-top: 8px; font-weight: 600; }
+.puzzle-progress .caption { margin-top: 2px; }
+#puzzle-solved { color: var(--green); }
 .dashboard-link { width: 100%; margin-top: 13px; justify-content: space-between; padding-inline: 3px; }
 .dashboard-link:hover { color: var(--green); text-decoration: underline; }
 .popup-caption { text-align: center; margin-top: 7px; font-size: 10px; }

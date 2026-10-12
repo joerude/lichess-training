@@ -1,5 +1,6 @@
 import { mountTrainingPage } from './page.js';
 import { mountPractice } from './practice.js';
+import { mountPuzzleCard } from './puzzle-card.js';
 
 let practice;
 let trainingLoaded = false;
@@ -9,6 +10,13 @@ const page = mountTrainingPage((snapshot) => {
 });
 practice = mountPractice({ client: page.client, compact: true, setExternalBusy: page.setExternalBusy });
 void practice.refresh();
+// Opening the popup takes the day's first reading before any puzzle is solved.
+const puzzles = mountPuzzleCard({ client: page.client, onError: error => page.showError(error), onAutoComplete() {
+  void page.controller.refresh();
+  void practice.refresh();
+} });
+void puzzles.refresh();
+document.getElementById('refresh').addEventListener('click', () => { void puzzles.refresh(); });
 document.getElementById('open-dashboard').addEventListener('click', async () => {
   try {
     await browser.tabs.create({ url: browser.runtime.getURL('ui/dashboard.html') });
