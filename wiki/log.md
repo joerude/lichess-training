@@ -39,3 +39,6 @@
 
 ## [2026-10-12] ingest | Решения владельца по ревью 0.4.1: основной экран и правило запрета
 Обновлены `day-auto-mark-and-suppression` (запрет только при отмене после набора нормы), `puzzle-daily-baseline` (показание снимает и основной экран; задачи считаются под аккаунтом в любом браузере), `plan-0-4-1-puzzle-auto-count`, `decision-public-puzzle-counter`, `verification-status` (370/370, проверка новых сценариев в Firefox). Источники: спецификация, `docs/verification.md`.
+
+## [2026-10-12] ingest | Автоматическая проверка в настоящем Firefox
+Обновлены `verification-status` (настоящий диалог разрешения пройден; `npm run smoke:firefox` — 46 проверок без провалов) и `manual-qa-procedure` (автоматическая часть маршрута). Вручную остаются реальные задачи после входа и полночь. Источники: `docs/verification.md`, `README.md`.

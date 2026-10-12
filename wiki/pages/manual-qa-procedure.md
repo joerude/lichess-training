@@ -1,7 +1,7 @@
 ---
 title: Порядок ручной проверки в Firefox
 type: concept
-sources: [docs/manual-qa.md]
+sources: [README.md, docs/manual-qa.md]
 updated: 2026-10-12
 ---
 
@@ -24,3 +24,5 @@ updated: 2026-10-12
 
 ## Источники
 - docs/manual-qa.md
+
+Автоматическая часть маршрута (0.4.1): `npm run smoke:firefox` запускает настоящий Firefox во временном профиле через Marionette и проходит сценарии `basic`, `dialog`, `auto`, `backup`, `network`, `keys`, `dashboard`; вручную остаются реальные задачи после входа в Lichess и полночь. → `docs/verification.md`, `README.md`.
