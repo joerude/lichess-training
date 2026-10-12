@@ -21,6 +21,6 @@ updated: 2026-10-12
 | Лента `/api/user/{name}/activity` | Дни по UTC, а у проекта дни по Asia/Bishkek; граница UTC приходится на 06:00 местного времени |
 
 ## Цена решения
-Нужен вход в Lichess в этом Firefox; счётчик считает все попытки; задачи до первого наблюдения за день не видны. Как с этим живёт расчёт — [[puzzle-daily-baseline]]; отметка и награда — [[day-auto-mark-and-suppression]]. Что даёт `puzzle:read`, описано в [[research-dataset-and-lichess-evidence]].
+Засчитываются только задачи под аккаунтом sebajun777 (в любом браузере или приложении), анонимные — нет; счётчик считает все попытки; задачи до первого наблюдения за день не видны. Как с этим живёт расчёт — [[puzzle-daily-baseline]]; отметка и награда — [[day-auto-mark-and-suppression]]. Что даёт `puzzle:read`, описано в [[research-dataset-and-lichess-evidence]].
 
 Источники: `docs/plans/2026-10-12-puzzle-progress-design.md`.
