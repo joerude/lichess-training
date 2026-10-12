@@ -17,7 +17,7 @@ export function createPuzzleService({ repository, practice, lichess, canAccess =
 
   async function refresh() {
     const checkedAt = readClock();
-    const stored = (await repository.readPractice()).puzzles;
+    const stored = await repository.readPuzzleReading();
     let status = 'ok';
     let count = null;
     if (!await canAccess()) status = 'no-permission';

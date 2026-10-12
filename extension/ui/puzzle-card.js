@@ -24,6 +24,7 @@ export function mountPuzzleCard({ client, document = globalThis.document, onAuto
   const phrase = document.getElementById('puzzle-phrase');
   const meta = document.getElementById('puzzle-meta');
   let pending = null;
+  let last = null;
 
   function render(value) {
     const known = value.solved !== null;
@@ -42,23 +43,30 @@ export function mountPuzzleCard({ client, document = globalThis.document, onAuto
     box.hidden = false;
   }
 
+  function refresh() {
+    if (pending) return pending;
+    pending = client.request({ type: 'puzzles.refresh' })
+      .then(value => {
+        last = value;
+        render(value);
+        if (value.autoCompleted) onAutoComplete();
+        return value;
+      })
+      .catch(error => {
+        // Lichess failures arrive as a status; a rejected request is a storage or clock problem worth showing.
+        render({ solved: null, status: 'offline' });
+        onError(error);
+        return null;
+      })
+      .finally(() => { pending = null; });
+    return pending;
+  }
+
   return {
-    refresh() {
-      if (pending) return pending;
-      pending = client.request({ type: 'puzzles.refresh' })
-        .then(value => {
-          render(value);
-          if (value.autoCompleted) onAutoComplete();
-          return value;
-        })
-        .catch(error => {
-          // Lichess failures arrive as a status; a rejected request is a storage or clock problem worth showing.
-          render({ solved: null, status: 'offline' });
-          onError(error);
-          return null;
-        })
-        .finally(() => { pending = null; });
-      return pending;
+    refresh,
+    // A mark or undo made elsewhere in the popup changes which phrase applies, so the card is re-read.
+    syncCompletion(completed) {
+      return last && last.completed !== completed ? refresh() : null;
     },
   };
 }

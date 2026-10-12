@@ -5,6 +5,7 @@ import { createRepository } from '../extension/data/repository.js';
 import { createServices } from '../extension/app/services.js';
 
 function fixture({ access = true, counts = [] } = {}) {
+  let allowed = access;
   const repository = createRepository({ indexedDB: new IDBFactory() });
   let time = new Date('2026-10-12T03:14:00Z');
   let requests = 0;
@@ -14,11 +15,12 @@ function fixture({ access = true, counts = [] } = {}) {
       requests += 1;
       const next = counts.shift();
       if (next instanceof Error) throw next;
-      return next;
+      return typeof next === 'function' ? next() : next;
     },
   };
-  const service = createServices({ repository, now: () => time, lichess, canAccess: async () => access });
-  return { repository, service, requests: () => requests, at: value => { time = new Date(value); } };
+  const service = createServices({ repository, now: () => time, lichess, canAccess: async () => allowed });
+  return { repository, service, requests: () => requests, at: value => { time = new Date(value); },
+    setAccess: value => { allowed = value; } };
 }
 const refresh = service => service.handle({ type: 'puzzles.refresh' });
 
@@ -102,4 +104,23 @@ test('concurrent refreshes share one request', async () => {
 test('unknown puzzle commands are rejected', async () => {
   const f = fixture();
   await assert.rejects(f.service.handle({ type: 'puzzles.unknown' }), /Неизвестная команда счётчика задач/);
+});
+
+test('revoked access keeps today\'s reading and reports no-permission without a request', async () => {
+  const f = fixture({ counts: [894] });
+  await refresh(f.service);
+  f.setAccess(false);
+  f.at('2026-10-12T03:20:00Z');
+  const result = await refresh(f.service);
+  assert.deepEqual([result.status, result.solved, result.observedAt, f.requests()], ['no-permission', 0, '2026-10-12T03:14:00.000Z', 1]);
+});
+
+test('a reading that arrives after midnight starts the new day', async () => {
+  let f;
+  f = fixture({ counts: [894, () => { f.at('2026-10-11T18:00:05Z'); return 904; }] });
+  f.at('2026-10-11T17:00:00Z');
+  await refresh(f.service);
+  f.at('2026-10-11T17:59:50Z');
+  const next = await refresh(f.service);
+  assert.deepEqual([next.date, next.solved, next.baselineAt], ['2026-10-12', 0, '2026-10-11T18:00:05.000Z']);
 });

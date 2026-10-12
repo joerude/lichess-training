@@ -67,3 +67,12 @@ test('a practice transaction writes a new puzzle reading and keeps the stored on
   const stored = await repository.readPractice();
   assert.deepEqual([stored.journal.value, stored.puzzles], [3, reading]);
 });
+
+test('the puzzle reading can be read alone', async () => {
+  const repository = createRepository({ indexedDB: new IDBFactory() });
+  assert.equal(await repository.readPuzzleReading(), null);
+  const reading = { date: '2026-10-12', baseline: 894, latest: 896,
+    baselineAt: '2026-10-12T03:14:00.000Z', observedAt: '2026-10-12T04:00:00.000Z' };
+  await repository.transactPractice(() => ({ journal: { value: 1 }, practice: { value: 2 }, puzzles: reading }));
+  assert.deepEqual(await repository.readPuzzleReading(), reading);
+});

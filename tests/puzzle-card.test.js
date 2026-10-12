@@ -37,6 +37,7 @@ test('phrases follow progress for targets 1, 10 and 11', () => {
   assert.equal(phrase(10, 10, 'ok', false), 'Норма набрана — отметка снята вручную');
   assert.equal(phrase(13, 10, 'ok', false), 'Норма набрана — отметка снята вручную');
   assert.equal(phrase(4, 10, 'no-permission'), 'Автоподсчёт выключен: подключите Lichess на основном экране');
+  assert.equal(phrase(13, 10, 'no-permission', false), 'Автоподсчёт выключен: подключите Lichess на основном экране');
 });
 
 test('clock times are shown in Bishkek time', () => {
@@ -100,5 +101,17 @@ test('revoked access keeps today\'s numbers and says why counting stopped', asyn
 test('a manual undo after reaching the target does not promise XP', async () => {
   const f = fixture(async () => reading({ solved: 10, completed: false }));
   await f.card.refresh();
+  assert.equal(f.node('puzzle-phrase').textContent, 'Норма набрана — отметка снята вручную');
+});
+
+test('a mark or undo elsewhere in the popup re-reads the card once', async () => {
+  const replies = [reading({ solved: 10, completed: true }), reading({ solved: 10, completed: false })];
+  const commands = [];
+  const f = fixture(async command => { commands.push(command); return replies.shift(); });
+  assert.equal(f.card.syncCompletion(true), null, 'nothing to compare before the first reading');
+  await f.card.refresh();
+  assert.equal(f.card.syncCompletion(true), null);
+  await f.card.syncCompletion(false);
+  assert.equal(commands.length, 2);
   assert.equal(f.node('puzzle-phrase').textContent, 'Норма набрана — отметка снята вручную');
 });

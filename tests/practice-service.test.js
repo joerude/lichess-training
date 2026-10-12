@@ -240,3 +240,16 @@ test('a null reading reuses the stored counter and a manual undo is respected', 
   assert.equal(again.records.journal.days[0].completedAt, null);
   assert.equal(again.records.practice.rewards.some(reward => reward.taskId === 'puzzles'), false);
 });
+
+test('a null reading auto-marks an unmarked, unsuppressed day when the stored count meets the target', async () => {
+  const repository = createRepository({ indexedDB: new IDBFactory() });
+  const practice = createPracticeService({ repository });
+  await practice.recordPuzzleCount(new Date('2026-10-12T03:00:00Z'), 894);
+  await practice.recordPuzzleCount(new Date('2026-10-12T04:00:00Z'), 904);
+  // Simulate restoring a copy taken before the mark: the day is unmarked and not suppressed.
+  await repository.transactPractice(current => ({ ...current,
+    journal: { ...current.journal, days: current.journal.days.map(day => ({ date: day.date, target: day.target, completedAt: null })) } }));
+  const again = await practice.recordPuzzleCount(new Date('2026-10-12T04:30:00Z'), null);
+  assert.equal(again.autoCompleted, true);
+  assert.equal(again.records.journal.days[0].source, 'auto');
+});

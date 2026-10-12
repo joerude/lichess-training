@@ -174,6 +174,19 @@ export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lic
     });
   }
 
+  async function readPuzzleReading() {
+    const database = await open();
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction('historyMeta', 'readonly');
+      const request = transaction.objectStore('historyMeta').get('puzzles');
+      let reading = null;
+      request.onsuccess = () => { reading = request.result ?? null; };
+      transaction.oncomplete = () => resolve(reading);
+      transaction.onabort = () => reject(transaction.error || new Error('Чтение счётчика задач отменено.'));
+      transaction.onerror = () => {};
+    });
+  }
+
   async function importHistory(input) {
     const batch = structuredClone(input);
     if (!batch || !Array.isArray(batch.games) || (batch.ratings !== null && !Array.isArray(batch.ratings)) ||
@@ -265,6 +278,7 @@ export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lic
 
   return { read, transact, readHistory: () => readHistory(), readSyncHistory: () => readHistory(true), importHistory, saveSyncBatch,
     readPractice: () => practiceTransaction(),
+    readPuzzleReading,
     transactPractice(update) {
       if (typeof update !== 'function') return Promise.reject(new Error('Нужна функция изменения программы.'));
       return practiceTransaction(update);
