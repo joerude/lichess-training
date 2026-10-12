@@ -54,7 +54,7 @@ const puzzles = createPuzzleReader({ client: page.client, onError: error => page
 void puzzles.refresh();
 window.addEventListener('focus', () => { void puzzles.refresh(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void puzzles.refresh(); });
-document.querySelector('#today-card a[href="https://lichess.org/training"]').addEventListener('click', () => { void puzzles.refresh(); });
+document.querySelector('#today-card a[href="https://lichess.org/training"]')?.addEventListener('click', () => { void puzzles.refresh(); });
 const history = mountHistory({ ...page, onImported: () => Promise.all([sync.refresh(), practice.refresh()]) });
 void history.refresh();
 const sync = mountSync({ client: page.client, setExternalBusy: page.setExternalBusy,
