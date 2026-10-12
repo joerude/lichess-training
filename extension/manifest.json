@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Шахматный журнал",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Личный журнал ежедневной шахматной практики для sebajun777.",
   "browser_specific_settings": {
     "gecko": {
