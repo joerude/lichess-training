@@ -56,6 +56,8 @@ export function mountPuzzleCard({ client, document = globalThis.document, onAuto
     if (known) {
       bar.max = value.target;
       bar.value = Math.min(value.solved, value.target);
+      // The track is ruled into one cell per task; more than twenty would be too narrow to tell apart.
+      bar.style?.setProperty('--cells', String(Math.min(value.target, 20)));
     }
     phrase.textContent = puzzlePhrase(value);
     meta.hidden = !known;

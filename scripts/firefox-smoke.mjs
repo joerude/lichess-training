@@ -22,6 +22,7 @@ const REACHED = 'Норма выполнена! +20 XP';
 const UNDONE = 'Норма набрана — отметка снята вручную';
 const DASHBOARD_NOTE = 'Засчитано автоматически по счётчику задач Lichess.';
 const DASHBOARD_CAPTION = 'Автоподсчёт по профилю Lichess или отметка вручную';
+const POPUP_HINT = 'Автоподсчёт по профилю Lichess · Время Бишкека';
 const STALE = 'данные могли устареть';
 const CONNECT = 'Подключить Lichess';
 const REFRESH = 'Обновить с Lichess';
@@ -209,6 +210,7 @@ const readPopup = () => {
   return {
     target: text('target'), solved: text('puzzle-solved'), solvedHidden: hidden('puzzle-solved'),
     phrase: text('puzzle-phrase'), meta: text('puzzle-meta'), metaHidden: hidden('puzzle-meta'),
+    hint: document.querySelector('#today-card .hint-body')?.textContent.replace(/\s+/g, ' ').trim() ?? null,
     barHidden: bar?.hidden ?? null, barValue: bar?.value ?? null, progressHidden: hidden('puzzle-progress'),
     status: text('today-status'), button: text('completion'), summary: text('program-summary'),
     controlsDisabled: Boolean(document.getElementById('completion')?.disabled || document.getElementById('refresh')?.disabled),
@@ -234,6 +236,14 @@ const readDashboard = () => {
 const readFocus = () => {
   const node = document.activeElement;
   return { tag: node.tagName.toLowerCase(), id: node.id, text: (node.getAttribute('aria-label') || node.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40) };
+};
+
+// The "?" next to the card title: whether it is open, whether its text is actually rendered (a closed <details> still has
+// a layout box, so only checkVisibility tells), and what it says.
+const readHint = () => {
+  const details = document.querySelector('#today-card details.hint');
+  const body = details?.querySelector('.hint-body');
+  return { open: details?.open ?? null, shown: Boolean(body?.checkVisibility()), text: body?.textContent.replace(/\s+/g, ' ').trim() ?? null };
 };
 
 const clickById = id => document.getElementById(id).click();
@@ -398,6 +408,7 @@ async function basic(s) {
   check('popup без доступа: фраза про выключенный автоподсчёт', start.phrase === NO_ACCESS, show(start.phrase));
   check('popup без доступа: числа скрыты', start.solvedHidden && start.barHidden && start.metaHidden,
     `число ${start.solvedHidden}, полоса ${start.barHidden}, подпись ${start.metaHidden}`);
+  check('popup: подпись про автоподсчёт и время Бишкека лежит в подсказке «?»', start.hint === POPUP_HINT, show(start.hint));
   await s.click('completion');
   const marked = await s.watchPopup(state => state.status === MANUAL);
   check('ручная отметка: статус «✓ Тренировка выполнена»', marked.status === MANUAL, show(marked.status));
@@ -517,21 +528,33 @@ async function networkLoss(s) {
 }
 
 async function keys(s) {
-  const describe = focus => (focus.tag === 'a' ? `a «${focus.text}»` : `${focus.tag}#${focus.id}`);
+  const describe = focus => (focus.tag === 'a' || focus.tag === 'summary' ? `${focus.tag} «${focus.text}»` : `${focus.tag}#${focus.id}`);
   await s.popup();
   const order = [];
-  for (let step = 0; step < 4; step++) {
+  for (let step = 0; step < 5; step++) {
     await s.m.press(KEYS.tab);
     order.push(await s.m.run(readFocus));
   }
-  const [refresh, link, completion, dashboard] = order;
-  check('порядок Tab: ↻, «Открыть задачи», кнопка отметки, «Открыть полный журнал»',
-    refresh.id === 'refresh' && link.tag === 'a' && link.text.startsWith('Открыть задачи') && completion.id === 'completion' && dashboard.id === 'open-dashboard',
+  const [refresh, hint, link, completion, dashboard] = order;
+  check('порядок Tab: ↻, «?», «Открыть задачи», кнопка отметки, «Открыть полный журнал»',
+    refresh.id === 'refresh' && hint.tag === 'summary' && hint.text === 'Подробнее' && link.tag === 'a' && link.text.startsWith('Открыть задачи') &&
+    completion.id === 'completion' && dashboard.id === 'open-dashboard',
     order.map(describe).join(' → '));
   await s.popup();
-  for (let step = 0; step < 3; step++) await s.m.press(KEYS.tab);
+  for (let step = 0; step < 2; step++) await s.m.press(KEYS.tab);
+  const closedHint = await s.m.run(readHint);
+  check('подсказка «?» закрыта, пока на неё не нажали', closedHint.open === false && !closedHint.shown, show(closedHint));
+  await s.m.press(KEYS.enter);
+  const openHint = await s.m.run(readHint);
+  await s.shot('popup-hint-open');
+  check('Enter на «?» раскрывает подсказку с подписью про автоподсчёт', openHint.open === true && openHint.shown && openHint.text === POPUP_HINT, show(openHint));
+  await s.m.press(KEYS.enter);
+  const shutHint = await s.m.run(readHint);
+  check('повторный Enter на «?» закрывает подсказку', shutHint.open === false && !shutHint.shown, show(shutHint));
+  await s.popup();
+  for (let step = 0; step < 4; step++) await s.m.press(KEYS.tab);
   const focus = await s.m.run(readFocus);
-  check('после 3×Tab фокус на кнопке отметки', focus.id === 'completion', describe(focus));
+  check('после 4×Tab фокус на кнопке отметки', focus.id === 'completion', describe(focus));
   await s.m.press(KEYS.enter);
   const marked = await s.watchPopup(state => state.status === MANUAL);
   await s.shot('popup-marked');

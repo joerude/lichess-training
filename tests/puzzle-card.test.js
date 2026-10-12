@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { puzzlePhrase, formatClock, mountPuzzleCard, createPuzzleReader } from '../extension/ui/puzzle-card.js';
 
-function fixture(request) {
+function fixture(request, extras = {}) {
   const nodes = new Map();
   const document = { getElementById(id) {
-    if (!nodes.has(id)) nodes.set(id, { id, textContent: '', hidden: true, max: 1, value: 0 });
+    if (!nodes.has(id)) nodes.set(id, { id, textContent: '', hidden: true, max: 1, value: 0, ...extras[id] });
     return nodes.get(id);
   } };
   let autoCompletes = 0;
@@ -54,6 +54,20 @@ test('the card shows 4 / 10 with a bar, phrase and times', async () => {
   assert.equal(f.node('puzzle-phrase').textContent, 'Хорошее начало — осталось 6');
   assert.deepEqual([f.node('puzzle-meta').textContent, f.node('puzzle-meta').hidden], ['счёт с 09:14 · обновлено 10:02', false]);
   assert.equal(f.node('puzzle-progress').hidden, false);
+});
+
+test('the bar is ruled into one cell per task, at most twenty, and only while a reading is shown', async () => {
+  async function cellsFor(response) {
+    const values = {};
+    const style = { setProperty(name, value) { values[name] = value; } };
+    const f = fixture(async () => response, { 'puzzle-bar': { style } });
+    await f.card.refresh();
+    return values;
+  }
+  assert.deepEqual(await cellsFor(reading({ target: 10 })), { '--cells': '10' });
+  assert.deepEqual(await cellsFor(reading({ target: 35, solved: 12 })), { '--cells': '20' });
+  assert.deepEqual(await cellsFor(reading({ target: 1, solved: 0 })), { '--cells': '1' });
+  assert.deepEqual(await cellsFor(reading({ status: 'no-permission', solved: null })), {});
 });
 
 test('the bar stops at the target and an automatic mark refreshes the rest of the popup', async () => {
