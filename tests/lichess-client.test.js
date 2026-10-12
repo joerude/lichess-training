@@ -256,3 +256,58 @@ test('network rejection is not retried and does not block later explicit request
   assert.deepEqual(await client.fetchGamesPage(interval), { records: [], rows: 0 });
   assert.equal(requests, 2);
 });
+
+test('reads the public puzzle counter without cookies, token or redirects', async () => {
+  let request;
+  const client = createLichessClient({ fetchImpl: async (url, options) => {
+    request = { url: new URL(url), options };
+    return response(['{"id":"sebajun777","perfs":{"puzzle":{"games":894,"rating":1861}}}']);
+  } });
+  assert.equal(await client.fetchPuzzleCount(), 894);
+  assert.equal(request.url.href, 'https://lichess.org/api/user/sebajun777');
+  assert.equal(request.options.method, 'GET');
+  assert.equal(new Headers(request.options.headers).get('Accept'), 'application/json');
+  assert.equal(new Headers(request.options.headers).get('Authorization'), null);
+  assert.equal(request.options.credentials, 'omit');
+  assert.equal(request.options.redirect, 'error');
+  assert.ok(request.options.signal instanceof AbortSignal);
+});
+
+for (const [name, body] of [
+  ['missing puzzle perf', '{"perfs":{}}'],
+  ['negative counter', '{"perfs":{"puzzle":{"games":-1}}}'],
+  ['fractional counter', '{"perfs":{"puzzle":{"games":1.5}}}'],
+  ['string counter', '{"perfs":{"puzzle":{"games":"894"}}}'],
+  ['invalid JSON', '{"perfs":'],
+]) {
+  test(`puzzle counter reports no-data for ${name}`, async () => {
+    const client = createLichessClient({ fetchImpl: async () => response([body]) });
+    await assert.rejects(client.fetchPuzzleCount(), error => error.code === 'no-data');
+  });
+}
+
+test('puzzle counter shares the 429 pause with game pages', async () => {
+  let requests = 0;
+  const client = createLichessClient({ now: () => 1000, fetchImpl: async () => {
+    requests++;
+    return response([], { status: 429, headers: { 'Retry-After': '120' } });
+  } });
+  await assert.rejects(client.fetchPuzzleCount(), error => error.retryAt === 121000);
+  await assert.rejects(client.fetchGamesPage(interval), error => error.retryAt === 121000);
+  assert.equal(requests, 1);
+});
+
+test('puzzle counter times out and aborts the request', async () => {
+  let signal;
+  const client = createLichessClient({ timeoutMs: 5, fetchImpl: (url, options) => {
+    signal = options.signal;
+    return new Promise(() => {});
+  } });
+  await assert.rejects(client.fetchPuzzleCount(), /Истекло время/);
+  assert.equal(signal.aborted, true);
+});
+
+test('puzzle counter rejects profile bodies above 1 MiB', async () => {
+  const client = createLichessClient({ fetchImpl: async () => response([new Uint8Array(1024 * 1024 + 1)]) });
+  await assert.rejects(client.fetchPuzzleCount(), /1 MiB/);
+});
