@@ -4,7 +4,7 @@
 
 ## Автоподсчёт задач: 0.4.1 (2026-10-12)
 
-- `npm test`: 360/360 тестов (Node 22), 0 падений. Новые файлы: `tests/puzzle-progress.test.js`, `tests/puzzle-service.test.js`, `tests/puzzle-card.test.js`, `tests/day-flags.test.js`; дополнены тесты клиента, репозитория, сервиса программы и UI.
+- `npm test`: 365/365 тестов (Node 22), 0 падений. Новые файлы: `tests/puzzle-progress.test.js`, `tests/puzzle-service.test.js`, `tests/puzzle-card.test.js`, `tests/day-flags.test.js`; дополнены тесты клиента, репозитория, сервиса программы и UI.
 - `web-ext lint`: 0 ошибок, 0 предупреждений, 0 notices.
 - `web-ext build`: `dist/lichess-training-0.4.1.zip`, 38 записей (33 файла и 5 каталогов); есть `app/puzzles.js`, `core/puzzle-progress.js`, `ui/puzzle-card.js`. Версии manifest и package — 0.4.1.
 - Источник счётчика проверен одним публичным запросом 2026-10-12: `GET /api/user/sebajun777` → `perfs.puzzle.games = 894`.

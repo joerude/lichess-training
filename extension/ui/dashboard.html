@@ -34,17 +34,17 @@
       <div class="overview-grid">
         <section id="today-card" class="card today-card" aria-labelledby="today-heading" aria-busy="true">
           <div class="card-top"><p class="eyebrow" id="today-heading">СЕГОДНЯ</p><time id="today-date">Загрузка…</time></div>
-          <div class="task-layout"><div><p class="task-target"><span id="target">—</span> <span class="target-unit">задач</span></p><h2>Ежедневная тактика</h2><p class="muted task-copy">Решите задачи на Lichess, затем отметьте тренировку здесь.</p></div><div class="chess-art" aria-hidden="true"><span>♘</span></div></div>
+          <div class="task-layout"><div><p class="task-target"><span id="target">—</span> <span class="target-unit">задач</span></p><h2>Ежедневная тактика</h2><p class="muted task-copy">Решите задачи на Lichess: при доступе к профилю они засчитываются по счётчику, иначе отметьте тренировку здесь.</p></div><div class="chess-art" aria-hidden="true"><span>♘</span></div></div>
           <p id="today-status" class="task-status" role="status">Загружаем ваш журнал…</p>
           <div class="task-actions"><a class="button button-primary" href="https://lichess.org/training" target="_blank" rel="noopener noreferrer">Открыть задачи <span aria-hidden="true">↗</span><span class="sr-only"> (в новой вкладке)</span></a><button id="completion" class="button button-secondary" type="button" aria-pressed="false" disabled>Отметить выполнение</button></div>
-          <p class="caption">Отметка вручную · День по времени Бишкека (UTC+6)</p>
+          <p class="caption">Автоподсчёт по профилю Lichess или отметка вручную · День по времени Бишкека (UTC+6)</p>
         </section>
         <aside class="summary-stack">
           <section class="card total-card" aria-labelledby="total-heading"><p class="eyebrow" id="total-heading">ОТМЕТОК ТАКТИКИ</p><p id="completed-days" class="total-number">—</p><p class="muted">За всё время в вашем журнале</p><div class="fine-rule"></div><p class="caption">Каждая отметка — день, когда вы уделили время шахматам.</p></section>
           <section class="practice-note"><span class="note-symbol" aria-hidden="true">♙</span><div><h2>Начните с малого</h2><p>Это стартовое упражнение для привычки, а не персональная рекомендация по тренировкам.</p></div></section>
         </aside>
       </div>
-      <section class="card week-card" aria-labelledby="week-heading"><div class="section-heading"><div><p class="eyebrow">РИТМ ПРАКТИКИ</p><h2 id="week-heading">Отметки задач за семь дней</h2></div><p id="week-summary" class="muted">Загрузка…</p></div><ol id="week" class="week-grid" aria-label="Ручные отметки задач за последние семь дней"></ol><p class="caption week-legend"><span>✓ Выполнено</span><span>○ Не отмечено</span><span>— До начала программы</span></p></section>
+      <section class="card week-card" aria-labelledby="week-heading"><div class="section-heading"><div><p class="eyebrow">РИТМ ПРАКТИКИ</p><h2 id="week-heading">Отметки задач за семь дней</h2></div><p id="week-summary" class="muted">Загрузка…</p></div><ol id="week" class="week-grid" aria-label="Отметки задач за последние семь дней"></ol><p class="caption week-legend"><span>✓ Выполнено</span><span>○ Не отмечено</span><span>— До начала программы</span></p></section>
       <section id="sync-card" class="card sync-card" aria-labelledby="sync-heading" aria-busy="false">
         <div class="section-heading"><div><p class="eyebrow">ПАРТИИ С LICHESS</p><h2 id="sync-heading">Свежие партии</h2></div><time id="sync-date">Загрузка…</time></div>
         <p class="muted sync-description">Партии за сегодня из загруженной истории · время Бишкека. Завершённые rated standard партии учитываются в ежедневной программе; награда выдаётся за достижение нормы.</p>
