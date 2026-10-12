@@ -18,7 +18,7 @@ const reading = (changes = {}) => ({ status: 'ok', date: '2026-10-12', solved: 4
   baselineAt: '2026-10-12T03:14:00.000Z', observedAt: '2026-10-12T04:02:00.000Z', autoCompleted: false, ...changes });
 
 test('phrases follow progress for targets 1, 10 and 11', () => {
-  const phrase = (solved, target = 10, status = 'ok') => puzzlePhrase({ solved, target, status });
+  const phrase = (solved, target = 10, status = 'ok', completed = solved !== null && solved >= target) => puzzlePhrase({ solved, target, status, completed });
   assert.equal(phrase(0), 'Начнём — 10 задач на сегодня');
   assert.equal(phrase(1), 'Хорошее начало — осталось 9');
   assert.equal(phrase(4), 'Хорошее начало — осталось 6');
@@ -34,6 +34,9 @@ test('phrases follow progress for targets 1, 10 and 11', () => {
   for (const status of ['offline', 'rate-limited', 'no-data']) {
     assert.equal(phrase(null, 10, status), 'Нет данных Lichess — можно отметить вручную');
   }
+  assert.equal(phrase(10, 10, 'ok', false), 'Норма набрана — отметка снята вручную');
+  assert.equal(phrase(13, 10, 'ok', false), 'Норма набрана — отметка снята вручную');
+  assert.equal(phrase(4, 10, 'no-permission'), 'Автоподсчёт выключен: подключите Lichess на основном экране');
 });
 
 test('clock times are shown in Bishkek time', () => {
@@ -84,4 +87,18 @@ test('overlapping refreshes send one request', async () => {
   const f = fixture(async () => { requests += 1; return reading(); });
   await Promise.all([f.card.refresh(), f.card.refresh()]);
   assert.equal(requests, 1);
+});
+
+test('revoked access keeps today\'s numbers and says why counting stopped', async () => {
+  const f = fixture(async () => reading({ status: 'no-permission' }));
+  await f.card.refresh();
+  assert.deepEqual([f.node('puzzle-solved').textContent, f.node('puzzle-bar').hidden], ['4 / ', false]);
+  assert.equal(f.node('puzzle-phrase').textContent, 'Автоподсчёт выключен: подключите Lichess на основном экране');
+  assert.equal(f.node('puzzle-meta').textContent, 'счёт с 09:14 · обновлено 10:02 · данные могли устареть');
+});
+
+test('a manual undo after reaching the target does not promise XP', async () => {
+  const f = fixture(async () => reading({ solved: 10, completed: false }));
+  await f.card.refresh();
+  assert.equal(f.node('puzzle-phrase').textContent, 'Норма набрана — отметка снята вручную');
 });

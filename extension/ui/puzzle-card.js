@@ -6,12 +6,11 @@ export function formatClock(iso) {
   return clock.format(new Date(iso));
 }
 
-export function puzzlePhrase({ solved, target, status }) {
-  if (solved === null) {
-    return status === 'no-permission'
-      ? 'Автоподсчёт выключен: подключите Lichess на основном экране'
-      : 'Нет данных Lichess — можно отметить вручную';
-  }
+export function puzzlePhrase({ solved, target, status, completed }) {
+  if (status === 'no-permission') return 'Автоподсчёт выключен: подключите Lichess на основном экране';
+  if (solved === null) return 'Нет данных Lichess — можно отметить вручную';
+  // Reaching the target without a mark means the mark was removed by hand, so no reward is promised.
+  if (solved >= target && !completed) return 'Норма набрана — отметка снята вручную';
   if (solved === 0) return `Начнём — ${target} ${puzzleNoun(target)} на сегодня`;
   if (solved > target) return `Сверх нормы: ${solved} ${puzzleNoun(solved)}`;
   if (solved === target) return 'Норма выполнена! +20 XP';
