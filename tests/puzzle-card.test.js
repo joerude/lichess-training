@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { puzzlePhrase, formatClock, mountPuzzleCard } from '../extension/ui/puzzle-card.js';
+import { puzzlePhrase, formatClock, mountPuzzleCard, createPuzzleReader } from '../extension/ui/puzzle-card.js';
 
 function fixture(request) {
   const nodes = new Map();
@@ -108,10 +108,32 @@ test('a mark or undo elsewhere in the popup re-reads the card once', async () =>
   const replies = [reading({ solved: 10, completed: true }), reading({ solved: 10, completed: false })];
   const commands = [];
   const f = fixture(async command => { commands.push(command); return replies.shift(); });
-  assert.equal(f.card.syncCompletion(true), null, 'nothing to compare before the first reading');
+  assert.equal(f.card.syncCompletion({ date: '2026-10-12', completed: true }), null, 'nothing to compare before the first reading');
   await f.card.refresh();
-  assert.equal(f.card.syncCompletion(true), null);
-  await f.card.syncCompletion(false);
+  assert.equal(f.card.syncCompletion({ date: '2026-10-12', completed: true }), null);
+  await f.card.syncCompletion({ date: '2026-10-12', completed: false });
   assert.equal(commands.length, 2);
   assert.equal(f.node('puzzle-phrase').textContent, 'Норма набрана — отметка снята вручную');
+});
+
+test('a new day in the open popup re-reads the card', async () => {
+  const commands = [];
+  const f = fixture(async command => { commands.push(command); return reading({ solved: 3, completed: false }); });
+  await f.card.refresh();
+  assert.equal(f.card.syncCompletion({ date: '2026-10-12', completed: false }), null);
+  await f.card.syncCompletion({ date: '2026-10-13', completed: false });
+  assert.equal(commands.length, 2);
+});
+
+test('the reader takes a reading without a card and reports automatic marks and failures', async () => {
+  let autoCompletes = 0;
+  let requests = 0;
+  const errors = [];
+  const replies = [() => reading({ autoCompleted: true }), () => { throw new Error('Disk full'); }];
+  const reader = createPuzzleReader({ client: { request: async () => { requests += 1; return replies.shift()(); } },
+    onAutoComplete: () => { autoCompletes += 1; }, onError: error => { errors.push(error.message); } });
+  await Promise.all([reader.refresh(), reader.refresh()]);
+  assert.deepEqual([requests, autoCompletes], [1, 1]);
+  assert.equal(await reader.refresh(), null);
+  assert.deepEqual(errors, ['Disk full']);
 });

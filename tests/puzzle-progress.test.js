@@ -41,6 +41,7 @@ test('invalid counters are rejected and broken records are ignored', () => {
   }
   assert.equal(solvedToday({ date: day, baseline: 5, latest: 2 }, day), null);
   assert.equal(solvedToday({ date: day, baseline: 1, latest: 2, baselineAt: 'not a date', observedAt: '2026-10-12T03:14:00.000Z' }, day), null);
+  assert.equal(solvedToday({ date: day, baseline: 1, latest: 2, baselineAt: 123, observedAt: '2026-10-12T03:14:00.000Z' }, day), null);
   assert.equal(shouldFetchPuzzles({ date: day }, at('03:14:00'), day), true);
 });
 
@@ -69,8 +70,10 @@ test('unknown counts, manual marks and a manual undo are left alone', () => {
   for (const solved of [undefined, NaN, '10', 10.5]) assert.equal(applyAutoCompletion(journal, day, solved, at('04:00:00')), journal);
   const manual = setCompletion(journal, day, true, at('03:00:00'));
   assert.equal(applyAutoCompletion(manual, day, 10, at('04:00:00')), manual);
-  const undone = setCompletion(manual, day, false, at('03:30:00'));
+  const undone = setCompletion(manual, day, false, at('03:30:00'), true);
   assert.equal(applyAutoCompletion(undone, day, 15, at('04:00:00')), undone);
+  const early = setCompletion(manual, day, false, at('03:30:00'));
+  assert.equal(applyAutoCompletion(early, day, 15, at('04:00:00')).days[0].source, 'auto', 'an undo without suppression does not block');
 });
 
 test('the day target overrides the program target', () => {

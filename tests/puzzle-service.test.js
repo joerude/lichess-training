@@ -124,3 +124,25 @@ test('a reading that arrives after midnight starts the new day', async () => {
   const next = await refresh(f.service);
   assert.deepEqual([next.date, next.solved, next.baselineAt], ['2026-10-12', 0, '2026-10-11T18:00:05.000Z']);
 });
+
+test('an early undo does not block the automatic mark later that day', async () => {
+  const f = fixture({ counts: [894, 896, 904] });
+  await refresh(f.service);
+  f.at('2026-10-12T03:20:00Z');
+  await refresh(f.service);
+  await f.service.handle({ type: 'training.setCompletion', day: '2026-10-12', completed: true });
+  await f.service.handle({ type: 'training.setCompletion', day: '2026-10-12', completed: false });
+  f.at('2026-10-12T04:00:00Z');
+  const later = await refresh(f.service);
+  assert.deepEqual([later.solved, later.completed, later.source, later.autoCompleted], [10, true, 'auto', true]);
+});
+
+test('a reading from yesterday is not shown when access is missing', async () => {
+  const f = fixture({ counts: [894] });
+  f.at('2026-10-11T15:00:00Z');
+  await refresh(f.service);
+  f.setAccess(false);
+  f.at('2026-10-12T03:00:00Z');
+  const result = await refresh(f.service);
+  assert.deepEqual([result.status, result.date, result.solved, result.baselineAt, result.observedAt], ['no-permission', '2026-10-12', null, null, null]);
+});

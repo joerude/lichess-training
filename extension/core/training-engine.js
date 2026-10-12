@@ -109,7 +109,7 @@ export function normalizeBackup(backup, today) {
   };
 }
 
-export function setCompletion(state, today, completed, instant) {
+export function setCompletion(state, today, completed, instant, suppressAuto = false) {
   if (today < state.program.startedOn) throw new Error('Тренировочный день предшествует началу программы.');
   const existing = state.days.find(entry => entry.date === today);
   const day = {
@@ -117,9 +117,9 @@ export function setCompletion(state, today, completed, instant) {
     target: existing?.target ?? state.program.target,
     completedAt: completed ? existing?.completedAt ?? instant.toISOString() : null,
   };
-  // Keep who completed the day; an undo stops automatic counting from marking it again today.
+  // Keep who completed the day; an undo after the target is reached stops automatic counting from marking it again today.
   if (completed && existing?.completedAt != null && existing.source) day.source = existing.source;
-  if (!completed) day.autoSuppressed = true;
+  if (!completed && suppressAuto) day.autoSuppressed = true;
   return {
     ...state,
     days: [...state.days.filter(entry => entry.date !== today), day].sort((a, b) => a.date.localeCompare(b.date)),

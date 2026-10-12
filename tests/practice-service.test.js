@@ -253,3 +253,19 @@ test('a null reading auto-marks an unmarked, unsuppressed day when the stored co
   assert.equal(again.autoCompleted, true);
   assert.equal(again.records.journal.days[0].source, 'auto');
 });
+
+test('a v2 backup round trip keeps the automatic mark and its reward', async () => {
+  const repository = createRepository({ indexedDB: new IDBFactory() });
+  const time = new Date('2026-10-12T04:00:00Z');
+  const services = createServices({ repository, now: () => time, lichess: {} });
+  const practice = createPracticeService({ repository });
+  await practice.recordPuzzleCount(new Date('2026-10-12T03:00:00Z'), 894);
+  await practice.recordPuzzleCount(time, 904);
+  const backup = await services.handle({ type: 'training.export' });
+  assert.equal(backup.state.days[0].source, 'auto');
+  await services.handle({ type: 'training.setCompletion', day: '2026-10-12', completed: false });
+  await services.handle({ type: 'training.import', backup });
+  const snapshot = await services.handle({ type: 'program.getSnapshot' });
+  assert.equal(snapshot.tasks.find(task => task.id === 'puzzles').source, 'auto');
+  assert.equal(snapshot.rewards.totalXp, 20);
+});

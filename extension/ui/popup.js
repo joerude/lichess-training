@@ -8,7 +8,7 @@ let trainingLoaded = false;
 const page = mountTrainingPage((snapshot) => {
   if (trainingLoaded || practice?.needsRefresh(snapshot.today.date)) void practice?.refresh();
   trainingLoaded = true;
-  void puzzles?.syncCompletion(snapshot.today.completed);
+  void puzzles?.syncCompletion(snapshot.today);
 });
 practice = mountPractice({ client: page.client, compact: true, setExternalBusy: page.setExternalBusy });
 void practice.refresh();

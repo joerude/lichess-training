@@ -2,6 +2,7 @@ import { mountTrainingPage, formatDay, puzzleNoun } from './page.js';
 import { mountHistory } from './history.js';
 import { mountSync } from './sync.js';
 import { mountPractice } from './practice.js';
+import { createPuzzleReader } from './puzzle-card.js';
 
 let practice;
 let trainingLoaded = false;
@@ -45,6 +46,15 @@ page.setExternalBusy = (value) => {
 };
 practice = mountPractice({ client: page.client, setExternalBusy: page.setExternalBusy });
 void practice.refresh();
+// The dashboard takes the day's puzzle reading too, so counting starts whichever page is opened first.
+const puzzles = createPuzzleReader({ client: page.client, onError: error => page.showError(error), onAutoComplete() {
+  void page.controller.refresh();
+  void practice.refresh();
+} });
+void puzzles.refresh();
+window.addEventListener('focus', () => { void puzzles.refresh(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void puzzles.refresh(); });
+document.querySelector('#today-card a[href="https://lichess.org/training"]').addEventListener('click', () => { void puzzles.refresh(); });
 const history = mountHistory({ ...page, onImported: () => Promise.all([sync.refresh(), practice.refresh()]) });
 void history.refresh();
 const sync = mountSync({ client: page.client, setExternalBusy: page.setExternalBusy,

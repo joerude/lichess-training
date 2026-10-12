@@ -6,7 +6,8 @@ function usable(record) {
   return Boolean(record) && typeof record === 'object' && typeof record.date === 'string' &&
     Number.isSafeInteger(record.baseline) && Number.isSafeInteger(record.latest) &&
     record.baseline >= 0 && record.latest >= record.baseline &&
-    Number.isFinite(Date.parse(record.baselineAt)) && Number.isFinite(Date.parse(record.observedAt));
+    typeof record.baselineAt === 'string' && Number.isFinite(Date.parse(record.baselineAt)) &&
+    typeof record.observedAt === 'string' && Number.isFinite(Date.parse(record.observedAt));
 }
 
 // A reading for today that is younger than a minute is reused instead of asking Lichess again.

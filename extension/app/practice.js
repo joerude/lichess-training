@@ -72,8 +72,13 @@ export function createPracticeService({ repository, now = () => new Date() }) {
       case 'training.setCompletion':
         if (typeof command.completed !== 'boolean') throw new Error('Некорректный статус завершения.');
         requireDay(command, today);
-        records = await update(instant, current => ({ ...current,
-          journal: setCompletion(current.journal, today, command.completed, instant) }));
+        records = await update(instant, current => {
+          const day = current.journal.days.find(entry => entry.date === today);
+          const solved = solvedToday(current.puzzles, today);
+          // Only an undo with the target already reached blocks automatic counting; an early undo must not.
+          const suppressAuto = !command.completed && solved !== null && solved >= (day?.target ?? current.journal.program.target);
+          return { ...current, journal: setCompletion(current.journal, today, command.completed, instant, suppressAuto) };
+        });
         break;
       case 'training.import': {
         const restored = normalizePracticeBackup(command.backup, today);

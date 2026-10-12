@@ -8,10 +8,11 @@ const instant = new Date('2026-10-12T05:00:00Z');
 const later = new Date('2026-10-12T06:00:00Z');
 const autoDay = state => ({ ...state, days: [{ date: day, target: 10, completedAt: instant.toISOString(), source: 'auto' }] });
 
-test('manual undo suppresses automatic counting for the day and a manual redo clears it', () => {
+test('an undo suppresses automatic counting only when asked and a manual redo clears it', () => {
   const marked = setCompletion(initialState(day), day, true, instant);
   assert.deepEqual(marked.days, [{ date: day, target: 10, completedAt: instant.toISOString() }]);
-  const undone = setCompletion(marked, day, false, later);
+  assert.deepEqual(setCompletion(marked, day, false, later).days, [{ date: day, target: 10, completedAt: null }]);
+  const undone = setCompletion(marked, day, false, later, true);
   assert.deepEqual(undone.days, [{ date: day, target: 10, completedAt: null, autoSuppressed: true }]);
   const redone = setCompletion(undone, day, true, later);
   assert.deepEqual(redone.days, [{ date: day, target: 10, completedAt: later.toISOString() }]);
