@@ -2,6 +2,7 @@ import { trainingDay, setCompletion, snapshotFrom } from '../core/training-engin
 import { configurePractice, saveReview, deleteReview, reconcilePractice, practiceSnapshot } from '../core/practice-engine.js';
 import { normalizePracticeBackup, practiceBackupFrom, practiceBackupPreview } from '../core/practice-backup.js';
 import { nextRevision } from '../core/practice-validation.js';
+import { observePuzzleCount, solvedToday, applyAutoCompletion } from '../core/puzzle-progress.js';
 
 export function createPracticeService({ repository, now = () => new Date() }) {
   function restoredPractice(saved, current) {
@@ -22,7 +23,9 @@ export function createPracticeService({ repository, now = () => new Date() }) {
     const today = trainingDay(instant);
     return repository.transactPractice(records => {
       const prepared = { ...records, ...reconcilePractice(records, today, instant) };
-      return reconcilePractice({ ...prepared, ...apply(prepared, today) }, today, instant);
+      // Keep the read facts (games, sync, puzzle counter) next to the reconciled records.
+      const applied = { ...prepared, ...apply(prepared, today) };
+      return { ...applied, ...reconcilePractice(applied, today, instant) };
     });
   }
 
@@ -84,5 +87,17 @@ export function createPracticeService({ repository, now = () => new Date() }) {
     return command.type === 'training.export' ? practiceBackupFrom(records, instant) : snapshotFrom(records.journal, today);
   }
 
-  return { handle, handleTraining };
+  // Saves a counter reading (null keeps the stored one) and marks the day once the target is reached.
+  async function recordPuzzleCount(instant, count) {
+    let autoCompleted = false;
+    const records = await update(instant, (current, today) => {
+      const puzzles = count === null ? current.puzzles : observePuzzleCount(current.puzzles, count, instant, today);
+      const journal = applyAutoCompletion(current.journal, today, solvedToday(puzzles, today), instant);
+      autoCompleted = journal !== current.journal;
+      return { ...current, puzzles, journal };
+    });
+    return { records, autoCompleted };
+  }
+
+  return { handle, handleTraining, recordPuzzleCount };
 }

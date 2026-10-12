@@ -135,13 +135,14 @@ export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lic
     return new Promise((resolve, reject) => {
       const transaction = database.transaction(['journal', 'games', 'historyMeta'], update ? 'readwrite' : 'readonly');
       const journal = transaction.objectStore('journal');
-      let result = { journal: null, practice: null, games: [], sync: null };
-      let remaining = 4;
+      let result = { journal: null, practice: null, games: [], sync: null, puzzles: null };
+      let remaining = 5;
       let failure;
       for (const [key, request] of [
         ['journal', journal.get(stateKey)], ['practice', journal.get('practice')],
         ['games', transaction.objectStore('games').getAll()],
         ['sync', transaction.objectStore('historyMeta').get('sync')],
+        ['puzzles', transaction.objectStore('historyMeta').get('puzzles')],
       ]) {
         request.onsuccess = () => {
           result[key] = request.result ?? (key === 'games' ? [] : null);
@@ -157,6 +158,12 @@ export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lic
             const saved = structuredClone({ journal: records.journal, practice: records.practice });
             journal.put(saved.journal, stateKey);
             journal.put(saved.practice, 'practice');
+            // Only a new counter reading is written; passing the read record through leaves it untouched.
+            if (records.puzzles != null && records.puzzles !== result.puzzles) {
+              if (typeof records.puzzles !== 'object' || Array.isArray(records.puzzles)) throw new Error('Некорректная запись счётчика задач.');
+              saved.puzzles = structuredClone(records.puzzles);
+              transaction.objectStore('historyMeta').put(saved.puzzles, 'puzzles');
+            }
             result = { ...result, ...saved };
           } catch (error) { failure = error; transaction.abort(); }
         };

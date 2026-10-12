@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { IDBFactory, IDBObjectStore } from 'fake-indexeddb';
 import { createRepository } from '../extension/data/repository.js';
 import { createServices } from '../extension/app/services.js';
+import { createPracticeService } from '../extension/app/practice.js';
 import { initialState, setCompletion, backupFrom } from '../extension/core/training-engine.js';
 
 const day = '2026-10-06';
@@ -207,4 +208,35 @@ test('a game committed by sync before the screen closed is rewarded once on the 
   const after = (await f.repository.readSyncHistory()).sync;
   assert.deepEqual(after, before);
   assert.equal(after.revision, 1);
+});
+
+test('recording puzzle readings marks the day once with one 20 XP reward', async () => {
+  const repository = createRepository({ indexedDB: new IDBFactory() });
+  const practice = createPracticeService({ repository });
+  const first = await practice.recordPuzzleCount(new Date('2026-10-12T03:14:00Z'), 894);
+  assert.equal(first.autoCompleted, false);
+  assert.equal(first.records.puzzles.baseline, 894);
+  const second = await practice.recordPuzzleCount(new Date('2026-10-12T04:00:00Z'), 904);
+  assert.equal(second.autoCompleted, true);
+  const today = second.records.journal.days.find(entry => entry.date === '2026-10-12');
+  assert.deepEqual([today.source, today.completedAt], ['auto', '2026-10-12T04:00:00.000Z']);
+  const third = await practice.recordPuzzleCount(new Date('2026-10-12T05:00:00Z'), 910);
+  assert.equal(third.autoCompleted, false);
+  const rewards = third.records.practice.rewards.filter(reward => reward.taskId === 'puzzles');
+  assert.deepEqual(rewards.map(reward => reward.points), [20]);
+});
+
+test('a null reading reuses the stored counter and a manual undo is respected', async () => {
+  const repository = createRepository({ indexedDB: new IDBFactory() });
+  const time = new Date('2026-10-12T04:00:00Z');
+  const services = createServices({ repository, now: () => time, lichess: {} });
+  const practice = createPracticeService({ repository });
+  await practice.recordPuzzleCount(new Date('2026-10-12T03:00:00Z'), 894);
+  await practice.recordPuzzleCount(time, 904);
+  await services.handle({ type: 'training.setCompletion', day: '2026-10-12', completed: false });
+  const again = await practice.recordPuzzleCount(time, null);
+  assert.equal(again.autoCompleted, false);
+  assert.equal(again.records.puzzles.latest, 904);
+  assert.equal(again.records.journal.days[0].completedAt, null);
+  assert.equal(again.records.practice.rewards.some(reward => reward.taskId === 'puzzles'), false);
 });

@@ -5,7 +5,7 @@ import { createRepository } from '../extension/data/repository.js';
 
 test('practice reads journal, program, games and sync together without initialization', async () => {
   const repository = createRepository({ indexedDB: new IDBFactory() });
-  assert.deepEqual(await repository.readPractice(), { journal: null, practice: null, games: [], sync: null });
+  assert.deepEqual(await repository.readPractice(), { journal: null, practice: null, games: [], sync: null, puzzles: null });
   assert.equal(await repository.read(), null);
 });
 
@@ -53,4 +53,17 @@ test('throwing, asynchronous or invalid program updates abort both records', asy
     await assert.rejects(repository.transactPractice(update));
     assert.deepEqual(await repository.readPractice(), before);
   }
+});
+
+test('a practice transaction writes a new puzzle reading and keeps the stored one otherwise', async () => {
+  const repository = createRepository({ indexedDB: new IDBFactory() });
+  const reading = { date: '2026-10-12', baseline: 894, latest: 894,
+    baselineAt: '2026-10-12T03:14:00.000Z', observedAt: '2026-10-12T03:14:00.000Z' };
+  await repository.transactPractice(() => ({ journal: { value: 1 }, practice: { value: 2 }, puzzles: reading }));
+  assert.deepEqual((await repository.readPractice()).puzzles, reading);
+  await repository.transactPractice(current => ({ ...current, journal: { value: 3 }, practice: { value: 4 } }));
+  assert.deepEqual((await repository.readPractice()).puzzles, reading);
+  await assert.rejects(repository.transactPractice(() => ({ journal: { value: 5 }, practice: { value: 6 }, puzzles: [] })));
+  const stored = await repository.readPractice();
+  assert.deepEqual([stored.journal.value, stored.puzzles], [3, reading]);
 });
