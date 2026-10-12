@@ -40,6 +40,7 @@ test('invalid counters are rejected and broken records are ignored', () => {
     assert.throws(() => observePuzzleCount(null, count, at('03:14:00'), day));
   }
   assert.equal(solvedToday({ date: day, baseline: 5, latest: 2 }, day), null);
+  assert.equal(solvedToday({ date: day, baseline: 1, latest: 2, baselineAt: 'not a date', observedAt: '2026-10-12T03:14:00.000Z' }, day), null);
   assert.equal(shouldFetchPuzzles({ date: day }, at('03:14:00'), day), true);
 });
 
@@ -65,6 +66,7 @@ test('reaching the target marks the day automatically once', () => {
 test('unknown counts, manual marks and a manual undo are left alone', () => {
   const journal = initialState(day);
   assert.equal(applyAutoCompletion(journal, day, null, at('04:00:00')), journal);
+  for (const solved of [undefined, NaN, '10', 10.5]) assert.equal(applyAutoCompletion(journal, day, solved, at('04:00:00')), journal);
   const manual = setCompletion(journal, day, true, at('03:00:00'));
   assert.equal(applyAutoCompletion(manual, day, 10, at('04:00:00')), manual);
   const undone = setCompletion(manual, day, false, at('03:30:00'));

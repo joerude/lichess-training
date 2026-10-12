@@ -6,7 +6,7 @@ function usable(record) {
   return Boolean(record) && typeof record === 'object' && typeof record.date === 'string' &&
     Number.isSafeInteger(record.baseline) && Number.isSafeInteger(record.latest) &&
     record.baseline >= 0 && record.latest >= record.baseline &&
-    typeof record.baselineAt === 'string' && Number.isFinite(Date.parse(record.observedAt));
+    Number.isFinite(Date.parse(record.baselineAt)) && Number.isFinite(Date.parse(record.observedAt));
 }
 
 // A reading for today that is younger than a minute is reused instead of asking Lichess again.
@@ -32,7 +32,7 @@ export function solvedToday(record, today) {
 
 // Returns the same journal object when nothing changes, so callers can detect a new mark.
 export function applyAutoCompletion(journal, today, solved, instant) {
-  if (solved === null) return journal;
+  if (!Number.isSafeInteger(solved)) return journal;
   const day = journal.days.find(entry => entry.date === today);
   if (day?.completedAt != null || day?.autoSuppressed === true) return journal;
   if (solved < (day?.target ?? journal.program.target)) return journal;
