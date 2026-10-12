@@ -51,6 +51,7 @@ export function mountPractice({ client, setExternalBusy, compact = false, docume
       card.append(node('h3', labels[task.id]), node('p', `${task.current} из ${task.target}`, 'program-count'), node('p', task.completed ? '✓ Выполнено · +20 XP' : '○ В процессе', 'caption'));
       if (task.source === 'games') card.append(node('p', value.coverage.partial ? 'История неполная: показаны известные партии. Число ниже цели может быть неполным.' : `Из сохранённых завершённых rated standard партий, загруженных до ${loadedAt(value.coverage.completedUntil)}.`, 'caption'));
       if (task.source === 'manual') card.append(node('p', 'Отметьте решение задач в карточке тактики ниже.', 'caption'));
+      if (task.source === 'auto') card.append(node('p', 'Засчитано автоматически по счётчику задач Lichess.', 'caption'));
       if (task.source === 'review') card.append(node('p', 'Сохраните собственную заметку к партии ниже.', 'caption'));
       return card;
     });

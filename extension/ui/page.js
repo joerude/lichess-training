@@ -82,7 +82,9 @@ export function mountTrainingPage(renderExtra = () => {}) {
       document.getElementById('target').textContent = value.today.target;
       document.querySelector('.target-unit').textContent = puzzleNoun(value.today.target);
       card.classList.toggle('is-completed', value.today.completed);
-      document.getElementById('today-status').textContent = value.today.completed ? '✓ Тренировка выполнена' : '○ Сегодня ещё не отмечено';
+      document.getElementById('today-status').textContent = value.today.completed
+        ? (value.today.source === 'auto' ? '✓ Засчитано по счётчику Lichess' : '✓ Тренировка выполнена')
+        : '○ Сегодня ещё не отмечено';
       completion.textContent = value.today.completed ? 'Отменить отметку' : `Выполнено: ${value.today.target} ${puzzleNoun(value.today.target)}`;
       completion.setAttribute('aria-pressed', String(value.today.completed));
       renderExtra(value);

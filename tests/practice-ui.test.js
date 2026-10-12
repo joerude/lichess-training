@@ -138,3 +138,11 @@ test('review draft keeps its displayed day at midnight and serialized refresh ca
   assert.deepEqual(busy, [true, false, true, false]);
   assert.equal(element('review-save').disabled, false);
 });
+
+test('automatic puzzle completion is explained on the dashboard', async () => {
+  const value = base();
+  value.tasks[1] = { ...value.tasks[1], source: 'auto' };
+  const { mounted, element } = fixture(async () => value);
+  await mounted.refresh();
+  assert.match(allText(element('program-tasks')), /Засчитано автоматически по счётчику задач Lichess\./);
+});

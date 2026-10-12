@@ -140,7 +140,8 @@ function tasksOn(practice, facts, date) {
   return TASK_IDS.filter(id => targets[id] > 0).map(id => {
     const current = id === 'puzzles' ? (day?.completedAt != null ? targets[id] : 0)
       : id === 'reviews' ? facts.reviewCounts.get(date) ?? 0 : facts.gameCounts.get(date)?.[id] ?? 0;
-    return { id, target: targets[id], current, completed: current >= targets[id], source: id === 'puzzles' ? 'manual' : id === 'reviews' ? 'review' : 'games' };
+    return { id, target: targets[id], current, completed: current >= targets[id],
+      source: id === 'puzzles' ? (day?.completedAt != null && day.source === 'auto' ? 'auto' : 'manual') : id === 'reviews' ? 'review' : 'games' };
   });
 }
 

@@ -44,7 +44,7 @@ test('first snapshot persists the fixed profile and schedules only dates since p
   const result = await snapshot(service);
   assert.deepEqual(result.profile, { username: 'sebajun777', timeZone: 'Asia/Bishkek' });
   assert.deepEqual(result.program, { id: 'daily-puzzles', title: 'Ежедневная тактика', target: 10, startedOn: '2026-10-04' });
-  assert.deepEqual(result.today, { date: '2026-10-04', taskId: 'puzzles', target: 10, completed: false, completedAt: null });
+  assert.deepEqual(result.today, { date: '2026-10-04', taskId: 'puzzles', target: 10, completed: false, completedAt: null, source: null });
   assert.deepEqual(result.week.map(day => day.date), ['2026-09-28', '2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04']);
   assert.equal(result.week.filter(day => day.scheduled).length, 1);
   assert.equal(result.completedDays, 0);

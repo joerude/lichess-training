@@ -57,6 +57,20 @@ function normalizedTimestamp(value) {
   return parsed.toISOString();
 }
 
+// Optional 0.4.1 fields: who completed the day and whether a manual undo blocks automatic counting.
+function dayFlags(entry, completedAt) {
+  const flags = {};
+  if (entry.source !== undefined) {
+    if (completedAt === null || !['manual', 'auto'].includes(entry.source)) throw new Error('Некорректный источник отметки дня.');
+    flags.source = entry.source;
+  }
+  if (entry.autoSuppressed !== undefined) {
+    if (entry.autoSuppressed !== true) throw new Error('Некорректный запрет автоподсчёта дня.');
+    flags.autoSuppressed = true;
+  }
+  return flags;
+}
+
 export function normalizeBackup(backup, today) {
   let json;
   try { json = JSON.stringify(backup); } catch { throw new Error('Некорректная резервная копия.'); }
@@ -86,7 +100,7 @@ export function normalizeBackup(backup, today) {
     if (completedAt !== null && trainingDay(new Date(completedAt)) !== entry.date) {
       throw new Error('Время завершения не соответствует тренировочному дню.');
     }
-    return { date: entry.date, target: requireTarget(entry.target), completedAt };
+    return { date: entry.date, target: requireTarget(entry.target), completedAt, ...dayFlags(entry, completedAt) };
   });
   return {
     profile: { username: USERNAME, timeZone: TIME_ZONE },
@@ -103,6 +117,9 @@ export function setCompletion(state, today, completed, instant) {
     target: existing?.target ?? state.program.target,
     completedAt: completed ? existing?.completedAt ?? instant.toISOString() : null,
   };
+  // Keep who completed the day; an undo stops automatic counting from marking it again today.
+  if (completed && existing?.completedAt != null && existing.source) day.source = existing.source;
+  if (!completed) day.autoSuppressed = true;
   return {
     ...state,
     days: [...state.days.filter(entry => entry.date !== today), day].sort((a, b) => a.date.localeCompare(b.date)),
@@ -123,6 +140,7 @@ export function snapshotFrom(state, today) {
     today: {
       date: today, taskId: 'puzzles', target: current?.target ?? state.program.target,
       completed: current?.completedAt != null, completedAt: current?.completedAt ?? null,
+      source: current?.completedAt != null ? current.source ?? 'manual' : null,
     },
     week,
     completedDays: completed.size,
