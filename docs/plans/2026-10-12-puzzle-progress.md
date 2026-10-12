@@ -118,9 +118,9 @@ test('puzzle counter rejects profile bodies above 1 MiB', async () => {
 Run: `node --test tests/lichess-client.test.js`
 Expected: FAIL, новые тесты падают с `client.fetchPuzzleCount is not a function`. Старые проходят.
 
-- [ ] **Step 3: Replace `extension/data/lichess-client.js` with the shared-helper version**
+- [ ] **Step 3: Replace `extension/data/lichess-client.js` with the shared-request version**
 
-Поведение `fetchGamesPage` не меняется: таймер, отмена тела, 429 и разбор NDJSON вынесены в помощники без изменения логики.
+Поведение `fetchGamesPage` не меняется. Каркас прежнего `requestPage` (пауза 429, таймер, проверка статуса, отмена тела) переезжает в общий `request(url, accept, consume)`, а разбор NDJSON становится его функцией `consume`. Профиль использует тот же каркас, поэтому дублирования нет.
 
 ```js
 const EXPORT_URL = 'https://lichess.org/api/games/user/sebajun777';
@@ -197,45 +197,11 @@ export function createLichessClient({ fetchImpl = globalThis.fetch, now = () => 
     return currentTime;
   }
 
-  function checkCooldown() {
+  // One GET with the shared 429 pause, timeout and body cleanup; consume(read) drains the stream.
+  async function request(url, accept, consume) {
     const currentTime = readClock();
     if (retryAt !== null && currentTime < retryAt) throw cooldownError(retryAt);
-  }
 
-  function send(url, accept, controller) {
-    return Promise.resolve(fetchImpl(url, {
-      method: 'GET', headers: { Accept: accept },
-      credentials: 'omit', redirect: 'error', signal: controller.signal,
-    })).then(response => {
-      if (controller.signal.aborted) cancelBody(response.body, controller.signal.reason);
-      return response;
-    });
-  }
-
-  function checkStatus(response) {
-    if (response.ok) return;
-    if (response.status === 429) {
-      retryAt = retryTime(response.headers.get('Retry-After'), readClock());
-      throw cooldownError(retryAt);
-    }
-    throw new Error(`Ошибка запроса к Lichess (HTTP ${response.status}).`);
-  }
-
-  // Game pages and the profile share one queue, so a 429 pause covers both.
-  function enqueue(request) {
-    const result = queue.then(request);
-    queue = result.catch(() => {});
-    return result;
-  }
-
-  async function requestPage({ since, until, max }) {
-    checkCooldown();
-
-    const url = new URL(EXPORT_URL);
-    url.search = new URLSearchParams({
-      since, until, max, sort: 'dateAsc', ongoing: 'true', finished: 'true',
-      moves: 'true', opening: 'true', clocks: 'false', evals: 'true', accuracy: 'true',
-    }).toString();
     const controller = new AbortController();
     const deadline = createDeadline(controller, timeoutMs);
     let reader;
@@ -243,11 +209,50 @@ export function createLichessClient({ fetchImpl = globalThis.fetch, now = () => 
     let complete = false;
 
     try {
-      const response = await Promise.race([send(url.href, 'application/x-ndjson', controller), deadline.promise]);
+      const fetching = Promise.resolve(fetchImpl(url, {
+        method: 'GET', headers: { Accept: accept },
+        credentials: 'omit', redirect: 'error', signal: controller.signal,
+      })).then(response => {
+        if (controller.signal.aborted) cancelBody(response.body, controller.signal.reason);
+        return response;
+      });
+      const response = await Promise.race([fetching, deadline.promise]);
       body = response.body;
-      checkStatus(response);
+      if (!response.ok) {
+        if (response.status === 429) {
+          retryAt = retryTime(response.headers.get('Retry-After'), readClock());
+          throw cooldownError(retryAt);
+        }
+        throw new Error(`Ошибка запроса к Lichess (HTTP ${response.status}).`);
+      }
       if (!body || typeof body.getReader !== 'function') throw new Error('Ответ Lichess не содержит поток данных.');
       reader = body.getReader();
+      const result = await consume(() => Promise.race([reader.read(), deadline.promise]));
+      complete = true;
+      return result;
+    } finally {
+      deadline.clear();
+      if (!complete) cancelBody(reader ?? body, controller.signal.reason);
+      if (reader) {
+        try { reader.releaseLock(); } catch {}
+      }
+    }
+  }
+
+  // Game pages and the profile share one queue, so a 429 pause covers both.
+  function enqueue(task) {
+    const result = queue.then(task);
+    queue = result.catch(() => {});
+    return result;
+  }
+
+  function requestPage({ since, until, max }) {
+    const url = new URL(EXPORT_URL);
+    url.search = new URLSearchParams({
+      since, until, max, sort: 'dateAsc', ongoing: 'true', finished: 'true',
+      moves: 'true', opening: 'true', clocks: 'false', evals: 'true', accuracy: 'true',
+    }).toString();
+    return request(url.href, 'application/x-ndjson', async read => {
       const decoder = new TextDecoder('utf-8', { fatal: true });
       const records = [];
       let wireBytes = 0;
@@ -266,7 +271,7 @@ export function createLichessClient({ fetchImpl = globalThis.fetch, now = () => 
         records.push(record);
       }
       for (;;) {
-        const { value, done } = await Promise.race([reader.read(), deadline.promise]);
+        const { value, done } = await read();
         if (done) { pending += decoder.decode(); break; }
         wireBytes += value.byteLength;
         if (wireBytes > MAX_BYTES) throw new Error('Размер ответа Lichess превышает 8 MiB.');
@@ -280,54 +285,28 @@ export function createLichessClient({ fetchImpl = globalThis.fetch, now = () => 
         pending = pending.slice(start);
       }
       if (pending) parseLine(pending);
-      complete = true;
       return { records, rows: records.length };
-    } finally {
-      deadline.clear();
-      if (!complete) cancelBody(reader ?? body, controller.signal.reason);
-      if (reader) {
-        try { reader.releaseLock(); } catch {}
-      }
-    }
+    });
   }
 
-  async function requestProfile() {
-    checkCooldown();
-    const controller = new AbortController();
-    const deadline = createDeadline(controller, timeoutMs);
-    let reader;
-    let body;
-    let complete = false;
-
-    try {
-      const response = await Promise.race([send(PROFILE_URL, 'application/json', controller), deadline.promise]);
-      body = response.body;
-      checkStatus(response);
-      if (!body || typeof body.getReader !== 'function') throw new Error('Ответ Lichess не содержит поток данных.');
-      reader = body.getReader();
+  async function requestPuzzleCount() {
+    const json = await request(PROFILE_URL, 'application/json', async read => {
       const decoder = new TextDecoder('utf-8', { fatal: true });
       let text = '';
       let wireBytes = 0;
       for (;;) {
-        const { value, done } = await Promise.race([reader.read(), deadline.promise]);
-        if (done) { text += decoder.decode(); break; }
+        const { value, done } = await read();
+        if (done) return text + decoder.decode();
         wireBytes += value.byteLength;
         if (wireBytes > PROFILE_MAX_BYTES) throw new Error('Размер профиля Lichess превышает 1 MiB.');
         text += decoder.decode(value, { stream: true });
       }
-      complete = true;
-      let profile;
-      try { profile = JSON.parse(text); } catch { throw noDataError(); }
-      const games = profile?.perfs?.puzzle?.games;
-      if (!Number.isSafeInteger(games) || games < 0) throw noDataError();
-      return games;
-    } finally {
-      deadline.clear();
-      if (!complete) cancelBody(reader ?? body, controller.signal.reason);
-      if (reader) {
-        try { reader.releaseLock(); } catch {}
-      }
-    }
+    });
+    let profile;
+    try { profile = JSON.parse(json); } catch { throw noDataError(); }
+    const games = profile?.perfs?.puzzle?.games;
+    if (!Number.isSafeInteger(games) || games < 0) throw noDataError();
+    return games;
   }
 
   return {
@@ -339,7 +318,7 @@ export function createLichessClient({ fetchImpl = globalThis.fetch, now = () => 
       return enqueue(() => requestPage({ since, until, max }));
     },
     fetchPuzzleCount() {
-      return enqueue(requestProfile);
+      return enqueue(requestPuzzleCount);
     },
   };
 }
@@ -1171,7 +1150,7 @@ git commit -m "feat: refresh puzzle progress through a throttled background serv
 - Produces:
   - `puzzlePhrase({ solved, target, status }): string`
   - `formatClock(iso: string): string` — «ЧЧ:ММ» по Asia/Bishkek
-  - `mountPuzzleCard({ client, document?, onAutoComplete? }) → { refresh(): Promise<PuzzleView | null> }`. Использует элементы `#puzzle-progress`, `#puzzle-solved`, `#puzzle-bar`, `#puzzle-phrase`, `#puzzle-meta`.
+  - `mountPuzzleCard({ client, document?, onAutoComplete?, onError? }) → { refresh(): Promise<PuzzleView | null> }`. Использует элементы `#puzzle-progress`, `#puzzle-solved`, `#puzzle-bar`, `#puzzle-phrase`, `#puzzle-meta`. Сетевые сбои приходят как `status`. Отклонённый запрос (сбой хранилища, неверное время) показывает ручной режим и передаётся в `onError(error)`; popup выводит его через `page.showError`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1189,8 +1168,10 @@ function fixture(request) {
     return nodes.get(id);
   } };
   let autoCompletes = 0;
-  const card = mountPuzzleCard({ client: { request }, document, onAutoComplete: () => { autoCompletes += 1; } });
-  return { card, node: id => document.getElementById(id), autoCompletes: () => autoCompletes };
+  const errors = [];
+  const card = mountPuzzleCard({ client: { request }, document,
+    onAutoComplete: () => { autoCompletes += 1; }, onError: error => { errors.push(error.message); } });
+  return { card, node: id => document.getElementById(id), autoCompletes: () => autoCompletes, errors };
 }
 const reading = (changes = {}) => ({ status: 'ok', date: '2026-10-12', solved: 4, target: 10, completed: false, source: null,
   baselineAt: '2026-10-12T03:14:00.000Z', observedAt: '2026-10-12T04:02:00.000Z', autoCompleted: false, ...changes });
@@ -1246,13 +1227,15 @@ test('without a reading the card hides numbers and explains the manual mode', as
   assert.equal(f.node('puzzle-progress').hidden, false);
 });
 
-test('stale readings are marked and request failures fall back to the manual mode', async () => {
+test('stale readings are marked and request failures are reported while the manual mode stays', async () => {
   const stale = fixture(async () => reading({ status: 'offline' }));
   await stale.card.refresh();
   assert.equal(stale.node('puzzle-meta').textContent, 'счёт с 09:14 · обновлено 10:02 · данные могли устареть');
+  assert.deepEqual(stale.errors, []);
   const failing = fixture(async () => { throw new Error('Disk full'); });
   assert.equal(await failing.card.refresh(), null);
   assert.equal(failing.node('puzzle-phrase').textContent, 'Нет данных Lichess — можно отметить вручную');
+  assert.deepEqual(failing.errors, ['Disk full']);
 });
 
 test('overlapping refreshes send one request', async () => {
@@ -1291,7 +1274,7 @@ export function puzzlePhrase({ solved, target, status }) {
   return `${solved < Math.ceil(target / 2) ? 'Хорошее начало' : 'Так держать'} — осталось ${target - solved}`;
 }
 
-export function mountPuzzleCard({ client, document = globalThis.document, onAutoComplete = () => {} }) {
+export function mountPuzzleCard({ client, document = globalThis.document, onAutoComplete = () => {}, onError = () => {} }) {
   const box = document.getElementById('puzzle-progress');
   const solvedNode = document.getElementById('puzzle-solved');
   const bar = document.getElementById('puzzle-bar');
@@ -1325,8 +1308,10 @@ export function mountPuzzleCard({ client, document = globalThis.document, onAuto
           if (value.autoCompleted) onAutoComplete();
           return value;
         })
-        .catch(() => {
+        .catch(error => {
+          // Lichess failures arrive as a status; a rejected request is a storage or clock problem worth showing.
           render({ solved: null, status: 'offline' });
+          onError(error);
           return null;
         })
         .finally(() => { pending = null; });
@@ -1373,7 +1358,7 @@ const page = mountTrainingPage((snapshot) => {
 practice = mountPractice({ client: page.client, compact: true, setExternalBusy: page.setExternalBusy });
 void practice.refresh();
 // Opening the popup takes the day's first reading before any puzzle is solved.
-const puzzles = mountPuzzleCard({ client: page.client, onAutoComplete() {
+const puzzles = mountPuzzleCard({ client: page.client, onError: error => page.showError(error), onAutoComplete() {
   void page.controller.refresh();
   void practice.refresh();
 } });
