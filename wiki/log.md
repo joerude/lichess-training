@@ -17,3 +17,9 @@
 
 ## [2026-10-12] ingest | Сверка ожидающих источников
 Каждый источник (MISSION, NOTES, architecture, verification, manual-qa, research, plans, reviews, lessons, reference) сверен с полем `sources:` страниц. Невнесённых нет: `lessons/0005`, `reference/0005` покрыты `lesson-05-daily-program-xp`, `docs/plans/2026-10-06-live-games.md` — `plan-stage3-live-games`. Новые страницы не создавались; раздел ожидающих в `index.md` заменён на «Нет».
+
+## [2026-10-12] ingest | Автоподсчёт задач 0.4.1
+Новые страницы: `plan-0-4-1-puzzle-auto-count` (саммари спецификации и плана), `decision-public-puzzle-counter`, `puzzle-daily-baseline`, `day-auto-mark-and-suppression`. Источники: `docs/plans/2026-10-12-puzzle-progress-design.md`, `docs/plans/2026-10-12-puzzle-progress.md`; факты 0.4.1 из `docs/verification.md`, `docs/manual-qa.md`, `docs/architecture.md`.
+Обновлены: `verification-status`, `roadmap-stages`, `manual-qa-procedure`, `architecture-overview`, `data-storage-model`, `practice-transaction`, `concept-lichess-api-and-permissions`, `backup-format-v2`, `stable-reward-ids`, `project-overview`, `index.md`.
+Противоречие на `verification-status`: «34 продуктовых файла» для 0.4.0 в `docs/verification.md` против измеренных 30 файлов (`unzip -Z1 dist/lichess-training-0.4.0.zip`, проверено 2026-10-12). Помечены также расхождения плана 0.4.1 со спецификацией (фразы, `NOTES.md`) и пауза 429 (память против базы).
+Факты, проверенные 2026-10-12, помечены в страницах: `npm test` 365/365, lint 0/0/0, ZIP 0.4.1 — 33 файла и 5 каталогов, первая ручная проверка пользователем; полный маршрут 0.4.1 в Firefox не пройден.

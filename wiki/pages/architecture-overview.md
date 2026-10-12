@@ -1,8 +1,8 @@
 ---
 title: Архитектура и модули расширения
 type: module
-sources: [docs/architecture.md]
-updated: 2026-10-10
+sources: [docs/architecture.md, docs/plans/2026-10-12-puzzle-progress-design.md, docs/plans/2026-10-12-puzzle-progress.md]
+updated: 2026-10-12
 ---
 
 # Архитектура расширения
@@ -37,6 +37,16 @@ dataset-import -> app ; background (события Firefox) -> app
 - `core/practice-backup.js` — полная проверка бэкапов V1/V2 до записи.
 - `app/practice.js` — команды program; сохранение через общую транзакцию. Старые training-команды идут тем же путём через общий маршрут сервисов.
 - В repository: `transactPractice` читает journal/games/historyMeta вместе и атомарно пишет state + practice.
+
+## Добавлено в 0.4.1
+Автоподсчёт задач ([[plan-0-4-1-puzzle-auto-count]]): задание «задачи» засчитывается по публичному счётчику профиля, без OAuth и cookies; ручная отметка остаётся.
+- `data/lichess-client.js` — `fetchPuzzleCount()`: те же очередь, таймаут 30 с и пауза после 429, что у загрузки партий; тело профиля не больше 1 MiB ([[concept-lichess-api-and-permissions]]).
+- `core/puzzle-progress.js` — чистые правила: показание за сегодня переиспользуется 60 с, первое показание дня по Бишкеку задаёт точку отсчёта, счётчик ниже неё начинает счёт заново, при достижении нормы ставится автоотметка ([[puzzle-daily-baseline]]).
+- `app/puzzles.js` — команда `puzzles.refresh`: проверяет optional permission и при необходимости запрашивает счётчик; затем `recordPuzzleCount` из `app/practice.js` одной транзакцией `transactPractice` пишет показание в `historyMeta['puzzles']`, автоотметку дня и награду ([[practice-transaction]]). Одновременные вызовы делят один запрос. Маршрут `puzzles.*` — в `app/services.js`, неизвестная команда отклоняется.
+- `core/training-engine.js`, `core/practice-engine.js` — необязательные поля дня `source: 'auto'` и `autoSuppressed: true`; задание «задачи» знает, что отмечено автоматически ([[day-auto-mark-and-suppression]]).
+- `ui/puzzle-card.js` — карточка popup: «N / норма», полоса, фраза поддержки, «счёт с ЧЧ:ММ · обновлено ЧЧ:ММ». Popup вызывает `puzzles.refresh` при открытии, по ↻ и после ручной отметки или отмены; фонового опроса нет.
+
+Сообщение `puzzles.refresh` возвращает `{ status, date, solved, target, baselineAt, observedAt, completed, source, autoCompleted }`. `status` — `'ok'`, `'no-permission'`, `'offline'`, `'rate-limited'` или `'no-data'`; `autoCompleted: true`, если отметку поставил этот вызов (тогда popup перечитывает карточку тренировки и строку программы); `solved`, `baselineAt`, `observedAt` равны `null`, если показания за сегодня нет. Выбор источника: [[decision-public-puzzle-counter]].
 
 ## Пользовательские разделы
 Единая страница расширения: «Сегодня», «Программа», «Прогресс», «Разборы», «Настройки». Popup показывает краткий прогресс дня, XP/уровень, время последней синхронизации и открывает эту страницу. В интерфейсе различаются выполнение из истории Lichess и собственная отметка пользователя.

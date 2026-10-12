@@ -1,8 +1,8 @@
 ---
 title: Формат резервной копии v2 и импорт v1
 type: decision
-sources: [docs/plans/2026-10-06-daily-program.md, lessons/0005-daily-program.html]
-updated: 2026-10-10
+sources: [docs/plans/2026-10-06-daily-program.md, lessons/0005-daily-program.html, docs/plans/2026-10-12-puzzle-progress-design.md, docs/plans/2026-10-12-puzzle-progress.md]
+updated: 2026-10-12
 ---
 
 Новый экспорт: `{format:'lichess-training-backup', version:2, exportedAt, state:<legacy journal>, practice}`.
@@ -13,7 +13,9 @@ updated: 2026-10-10
 - V2: заменяет журнал, программу, заметки и награды вместе; обновляет версии правил и заметок, отклоняя черновики до замены.
 - Games, ratings и sync metadata обе версии оставляют на месте.
 - Диалог показывает состав замены до подтверждения; `training.previewImport` проверяет файл без записи.
+- 0.4.1: v2 переносит и восстанавливает новые необязательные поля дня внутри `state.days[]`: `source` (`'manual'` или `'auto'`, только у отмеченного дня) и `autoSuppressed` (только `true`). Формат и номер версии не менялись; копии 0.4.0 без этих полей остаются валидными. Проверка отклоняет неизвестный `source`, `source` у неотмеченного дня и `autoSuppressed`, не равный `true`.
+- Показание счётчика задач `historyMeta['puzzles']`, как games, ratings и sync metadata, в копию не входит и при восстановлении остаётся на месте (вывод: v2 по описанию состоит из `state` и `practice`, в спецификации показание в формат не добавлено). Последствия для автоотметки — [[day-auto-mark-and-suppression]].
 
-Связи: [[stable-reward-ids]], [[practice-transaction]], [[plan-stage4-daily-program]].
+Связи: [[stable-reward-ids]], [[practice-transaction]], [[plan-stage4-daily-program]], [[plan-0-4-1-puzzle-auto-count]].
 
-Источники: `docs/plans/2026-10-06-daily-program.md`, `lessons/0005-daily-program.html`.
+Источники: `docs/plans/2026-10-06-daily-program.md`, `lessons/0005-daily-program.html`, `docs/plans/2026-10-12-puzzle-progress-design.md`, `docs/plans/2026-10-12-puzzle-progress.md`.
