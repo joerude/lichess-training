@@ -536,6 +536,8 @@ async function keys(s) {
   const marked = await s.watchPopup(state => state.status === MANUAL);
   await s.shot('popup-marked');
   check('Enter на кнопке отметки переключает отметку', marked.status === MANUAL && xp(marked.summary) === 20, `${show(marked.status)}, ${show(marked.summary)}`);
+  const kept = await s.m.run(readFocus);
+  check('после Enter фокус снова на кнопке отметки', kept.id === 'completion', describe(kept));
 }
 
 async function dashboardFirst(s) {

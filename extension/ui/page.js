@@ -47,11 +47,20 @@ export function mountTrainingPage(renderExtra = () => {}) {
   let busy = false;
   let externalBusy = false;
 
+  let completionHadFocus = false;
+
   function updateControls() {
-    completion.disabled = busy || externalBusy || !snapshot;
+    const locked = busy || externalBusy || !snapshot;
+    // Disabling a focused button drops keyboard focus to the body; hand it back once the button is enabled again.
+    if (locked && document.activeElement === completion) completionHadFocus = true;
+    completion.disabled = locked;
     refresh.disabled = busy || externalBusy;
     for (const button of document.querySelectorAll('[data-write-control]')) button.disabled = busy || externalBusy || !snapshot;
     card.setAttribute('aria-busy', String(busy));
+    if (!locked && completionHadFocus) {
+      completionHadFocus = false;
+      if (document.activeElement === document.body) completion.focus();
+    }
   }
   const feedback = createPageFeedback({ errorBox, notice });
   const { showSuccess } = feedback;
