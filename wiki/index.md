@@ -36,4 +36,4 @@
 - [[verification-status]] — Статус проверок.
 
 ## Источники, ожидающие ingest
-Нет. Все источники (`MISSION.md`, `NOTES.md`, `docs/architecture.md`, `docs/verification.md`, `docs/manual-qa.md`, `docs/research/*`, `docs/plans/*`, `docs/reviews/*`, `docs/plans/*`, `lessons/*`, `reference/*`) указаны в `sources:` страниц `wiki/pages/` (проверено 2026-10-12, после ingest 0.4.1).
+Нет. Все источники (`MISSION.md`, `NOTES.md`, `docs/architecture.md`, `docs/verification.md`, `docs/manual-qa.md`, `docs/research/*`, `docs/plans/*`, `docs/reviews/*`, `lessons/*`, `reference/*`) указаны в `sources:` страниц `wiki/pages/` (проверено 2026-10-12, после ingest 0.4.1).
