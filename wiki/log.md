@@ -23,3 +23,7 @@
 Обновлены: `verification-status`, `roadmap-stages`, `manual-qa-procedure`, `architecture-overview`, `data-storage-model`, `practice-transaction`, `concept-lichess-api-and-permissions`, `backup-format-v2`, `stable-reward-ids`, `project-overview`, `index.md`.
 Противоречие на `verification-status`: «34 продуктовых файла» для 0.4.0 в `docs/verification.md` против измеренных 30 файлов (`unzip -Z1 dist/lichess-training-0.4.0.zip`, проверено 2026-10-12). Помечены также расхождения плана 0.4.1 со спецификацией (фразы, `NOTES.md`) и пауза 429 (память против базы).
 Факты, проверенные 2026-10-12, помечены в страницах: `npm test` 365/365, lint 0/0/0, ZIP 0.4.1 — 33 файла и 5 каталогов, первая ручная проверка пользователем; полный маршрут 0.4.1 в Firefox не пройден.
+
+## [2026-10-12] ingest | Проверка 0.4.1 в настоящем Firefox
+Обновлена `verification-status`: результаты автоматической проверки 0.4.1 в Firefox 151 (Marionette, временная установка) — без доступа, ручная отметка, реальный запрос счётчика, автозачёт, отмена в том же popup.
+Вручную по-прежнему не пройдены диалог разрешения, реальные задачи после входа, офлайн, полночь, backup в браузере. Источник: `docs/verification.md`.
