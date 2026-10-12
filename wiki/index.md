@@ -32,6 +32,4 @@
 - [[verification-status]] — Статус проверок.
 
 ## Источники, ожидающие ingest
-- `MISSION.md`, `NOTES.md`, `docs/architecture.md`
-- `docs/research/*`, `docs/plans/*` (внесён: `2026-10-06-daily-program.md` — [[plan-stage4-daily-program]]), `docs/reviews/*`
-- `lessons/*`, `reference/*`
+Нет. Все источники (`MISSION.md`, `NOTES.md`, `docs/architecture.md`, `docs/verification.md`, `docs/manual-qa.md`, `docs/research/*`, `docs/plans/*`, `docs/reviews/*`, `lessons/*`, `reference/*`) указаны в `sources:` страниц `wiki/pages/` (проверено 2026-10-12).
