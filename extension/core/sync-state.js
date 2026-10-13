@@ -1,5 +1,6 @@
 import { normalizeGame } from '../data/normalize-game.js';
 import { trainingDay } from './training-engine.js';
+import { activeProfile } from './profile.js';
 import { buildHistoryOverview } from './history-statistics.js';
 
 const SPEEDS = ['bullet', 'blitz', 'rapid'];
@@ -30,6 +31,7 @@ export function getSyncState(history, instant) {
 export function parseLivePage(page, { since, until, max = 200 }) {
   if (!page || !Array.isArray(page.records) || page.rows !== page.records.length || page.rows > max ||
       !validTime(since) || !validTime(until) || since >= until) throw new Error('Некорректная порция Lichess.');
+  const { username } = activeProfile();
   const games = new Map();
   let skipped = 0;
   let lastCreatedAt = null;
@@ -46,7 +48,7 @@ export function parseLivePage(page, { since, until, max = 200 }) {
         skipped += 1;
         continue;
       }
-      const game = normalizeGame(raw);
+      const game = normalizeGame(raw, username);
       const previous = games.get(game.id);
       if (previous && JSON.stringify(previous) !== JSON.stringify(game)) throw new Error('Противоречивый повтор game ID.');
       games.set(game.id, game);

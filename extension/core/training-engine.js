@@ -1,5 +1,5 @@
-const USERNAME = 'sebajun777';
-const TIME_ZONE = 'Asia/Bishkek';
+import { activeProfile } from './profile.js';
+
 const PROGRAM_ID = 'daily-puzzles';
 const PROGRAM_TITLE = 'Ежедневная тактика';
 const BACKUP_FORMAT = 'lichess-training-backup';
@@ -17,12 +17,12 @@ export function dayKey(date, timeZone) {
 }
 
 export function trainingDay(date) {
-  return dayKey(date, TIME_ZONE);
+  return dayKey(date, activeProfile().timeZone);
 }
 
 export function initialState(today) {
   return {
-    profile: { username: USERNAME, timeZone: TIME_ZONE },
+    profile: activeProfile(),
     program: { id: PROGRAM_ID, title: PROGRAM_TITLE, target: 10, startedOn: today },
     days: [],
   };
@@ -83,7 +83,8 @@ export function normalizeBackup(backup, today) {
   const state = requireObject(backup.state);
   const profile = requireObject(state.profile);
   const program = requireObject(state.program);
-  if (profile.username !== USERNAME || profile.timeZone !== TIME_ZONE || program.id !== PROGRAM_ID) {
+  const active = activeProfile();
+  if (profile.username !== active.username || profile.timeZone !== active.timeZone || program.id !== PROGRAM_ID) {
     throw new Error('Резервная копия принадлежит другому профилю, часовому поясу или программе.');
   }
   if (!isCalendarDate(program.startedOn) || program.startedOn > today) throw new Error('Некорректная дата начала программы.');
@@ -103,7 +104,7 @@ export function normalizeBackup(backup, today) {
     return { date: entry.date, target: requireTarget(entry.target), completedAt, ...dayFlags(entry, completedAt) };
   });
   return {
-    profile: { username: USERNAME, timeZone: TIME_ZONE },
+    profile: active,
     program: { id: PROGRAM_ID, title: PROGRAM_TITLE, target: requireTarget(program.target), startedOn: program.startedOn },
     days: days.sort((a, b) => a.date.localeCompare(b.date)),
   };

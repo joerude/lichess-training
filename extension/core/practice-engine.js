@@ -1,4 +1,5 @@
 import { initialState, trainingDay } from './training-engine.js';
+import { activeProfile, dayStart } from './profile.js';
 import {
   TASK_IDS, DEFAULT_TARGETS, requireDate, shiftDate, requireRevision, nextRevision,
   normalizeTargets, normalizeNote, requireGameId, normalizeTimestamp,
@@ -64,10 +65,11 @@ export function configurePractice(practice, today, targets, expectedRevision) {
 }
 
 function eligibleGames(games) {
+  const { username } = activeProfile();
   const unique = new Map();
   for (const game of games ?? []) {
     if (!game || typeof game.id !== 'string' || !/^[a-zA-Z0-9]{8}$/.test(game.id) ||
-        game.username !== 'sebajun777' || game.rated !== true || game.variant !== 'standard' ||
+        game.username !== username || game.rated !== true || game.variant !== 'standard' ||
         !GAME_TASKS.has(game.speed) || !FINISHED.has(game.status) ||
         !Number.isSafeInteger(game.createdAt) || game.createdAt < 0 ||
         !Number.isSafeInteger(game.lastMoveAt) || game.lastMoveAt < game.createdAt) continue;
@@ -181,7 +183,7 @@ export function practiceSnapshot({ journal, practice, games, sync }, today) {
   const totalXp = program.rewards.reduce((sum, reward) => sum + reward.points, 0);
   const coverageStart = sync?.coverageStart ?? null;
   const completedUntil = sync?.completedUntil ?? null;
-  const startOfToday = Date.parse(`${today}T00:00:00.000+06:00`);
+  const startOfToday = dayStart(today, activeProfile().timeZone);
   const tasks = tasksOn(program, facts, today);
   const week = Array.from({ length: 7 }, (_, index) => {
     const date = shiftDate(today, index - 6);

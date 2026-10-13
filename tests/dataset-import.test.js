@@ -18,7 +18,7 @@ const text = records => records.map(record => JSON.stringify(record)).join('\n')
 test('normalization keeps compact own analysis and a known zero rating change', () => {
   const raw = game({ opening: { eco: 'C20', name: 'King’s Pawn Game', ply: 2 }, clocks: [50], analysis: [{ eval: 1 }] });
   raw.players.white.analysis = { acpl: 12, inaccuracy: 2, mistake: 0, blunder: 1, extra: true };
-  assert.deepEqual(normalizeGame(raw), {
+  assert.deepEqual(normalizeGame(raw, 'sebajun777'), {
     id: 'Abcd1234', username: 'sebajun777', speed: 'bullet', createdAt: 1000, lastMoveAt: 2000,
     status: 'mate', rated: true, variant: 'standard', color: 'white', result: 'win',
     rating: 2000, ratingDiff: 0, opponent: { id: 'opponent', name: 'Opponent', rating: 1900 },
@@ -30,32 +30,32 @@ test('normalization keeps compact own analysis and a known zero rating change', 
 test('profile matching is case insensitive and can fall back to name', () => {
   const raw = game();
   raw.players.white.user = { name: 'SEBAJUN777' };
-  assert.equal(normalizeGame(raw).color, 'white');
+  assert.equal(normalizeGame(raw, 'sebajun777').color, 'white');
   raw.players.white.user = { id: 'another-user', name: 'sebajun777' };
-  assert.throws(() => normalizeGame(raw), /profile|account|профил/i);
+  assert.throws(() => normalizeGame(raw, 'sebajun777'), /profile|account|профил/i);
 });
 
 test('black player outcomes and missing winner on finished games are normalized', () => {
   const raw = game();
   [raw.players.white, raw.players.black] = [raw.players.black, raw.players.white];
-  assert.equal(normalizeGame(raw).result, 'loss');
+  assert.equal(normalizeGame(raw, 'sebajun777').result, 'loss');
   raw.winner = 'black';
-  assert.equal(normalizeGame(raw).result, 'win');
+  assert.equal(normalizeGame(raw, 'sebajun777').result, 'win');
   delete raw.winner;
-  assert.equal(normalizeGame(raw).result, 'draw');
+  assert.equal(normalizeGame(raw, 'sebajun777').result, 'draw');
 });
 
 test('all known finished statuses without a winner are draws', () => {
   for (const status of ['mate', 'resign', 'stalemate', 'timeout', 'draw', 'outoftime', 'cheat', 'variantEnd', 'unknownFinish']) {
     const raw = game({ status });
     delete raw.winner;
-    assert.equal(normalizeGame(raw).result, 'draw', status);
+    assert.equal(normalizeGame(raw, 'sebajun777').result, 'draw', status);
   }
 });
 
 test('casual, variant, other speeds and pending games are skipped', () => {
   for (const overrides of [{ rated: false }, { variant: 'chess960' }, { speed: 'classical' }, { status: 'started' }, { status: 'created' }, { status: 'aborted' }]) {
-    assert.equal(normalizeGame(game(overrides)), null);
+    assert.equal(normalizeGame(game(overrides), 'sebajun777'), null);
   }
 });
 
@@ -64,7 +64,7 @@ test('missing optional ratings and analysis stay unknown', () => {
   raw.players.white = { user: { id: 'sebajun777' }, analysis: { mistake: 0 } };
   raw.players.black = { user: { name: 'Opponent' } };
   delete raw.moves;
-  const normalized = normalizeGame(raw);
+  const normalized = normalizeGame(raw, 'sebajun777');
   assert.equal(normalized.rating, null);
   assert.equal(normalized.ratingDiff, null);
   assert.equal(normalized.opponent.rating, null);
@@ -96,21 +96,21 @@ const malformed = [
   ['nonfinite aggregate', raw => { raw.players.white.analysis = { acpl: Infinity }; return raw; }],
 ];
 for (const [name, corrupt] of malformed) {
-  test(`normalization rejects ${name}`, () => assert.throws(() => normalizeGame(corrupt(game()))));
+  test(`normalization rejects ${name}`, () => assert.throws(() => normalizeGame(corrupt(game()), 'sebajun777')));
 }
 
 test('timestamps must be representable dates as well as nonnegative safe integers', () => {
   const maximumDate = 8640000000000000;
-  assert.throws(() => normalizeGame(game({ createdAt: maximumDate + 1, lastMoveAt: maximumDate + 1 })));
-  assert.throws(() => normalizeGame(game({ lastMoveAt: maximumDate + 1 })));
+  assert.throws(() => normalizeGame(game({ createdAt: maximumDate + 1, lastMoveAt: maximumDate + 1 }), 'sebajun777'));
+  assert.throws(() => normalizeGame(game({ lastMoveAt: maximumDate + 1 }), 'sebajun777'));
 });
 
 test('both timestamps must keep Bishkek calendar dates within four-digit years', () => {
   const lastSupported = Date.parse('9999-12-31T17:59:59.999Z');
-  assert.equal(normalizeGame(game({ createdAt: lastSupported, lastMoveAt: lastSupported })).createdAt, lastSupported);
+  assert.equal(normalizeGame(game({ createdAt: lastSupported, lastMoveAt: lastSupported }), 'sebajun777').createdAt, lastSupported);
   for (const timestamp of [lastSupported + 1, Date.parse('+010000-01-01T00:00:00.000Z')]) {
-    assert.throws(() => normalizeGame(game({ createdAt: timestamp, lastMoveAt: timestamp })), /createdAt/);
-    assert.throws(() => normalizeGame(game({ lastMoveAt: timestamp })), /lastMoveAt/);
+    assert.throws(() => normalizeGame(game({ createdAt: timestamp, lastMoveAt: timestamp }), 'sebajun777'), /createdAt/);
+    assert.throws(() => normalizeGame(game({ lastMoveAt: timestamp }), 'sebajun777'), /lastMoveAt/);
   }
 });
 
@@ -118,7 +118,7 @@ test('preview counts rows, skips and duplicates and reports creation chronology'
   const first = game({ id: 'First123', createdAt: 10, lastMoveAt: 100 });
   const last = game({ id: 'Last1234', createdAt: 300, lastMoveAt: 400 });
   const input = `\n${text([last, game({ rated: false }), first, first])}\n\n`;
-  const result = parseDataset(input);
+  const result = parseDataset(input, null, 'sebajun777');
   assert.equal(result.games.length, 2);
   assert.equal(result.ratings, null);
   assert.deepEqual(result.report, { rows: 4, unique: 2, duplicates: 1, skipped: 1, ratingPoints: 0, firstGameAt: 10, lastGameAt: 300 });
@@ -126,8 +126,8 @@ test('preview counts rows, skips and duplicates and reports creation chronology'
 
 test('normalized duplicates ignore unused raw properties but reject changed outcomes', () => {
   const raw = game();
-  assert.equal(parseDataset(text([raw, { ...raw, clocks: [100] }])).report.duplicates, 1);
-  assert.throws(() => parseDataset(text([raw, { ...raw, winner: 'black' }])), /line 2|строк.*2/i);
+  assert.equal(parseDataset(text([raw, { ...raw, clocks: [100] }]), null, 'sebajun777').report.duplicates, 1);
+  assert.throws(() => parseDataset(text([raw, { ...raw, winner: 'black' }]), null, 'sebajun777'), /line 2|строк.*2/i);
 });
 
 for (const overrides of [{ rated: false }, { variant: 'chess960' }, { speed: 'classical' }, { status: 'started' }]) {
@@ -137,7 +137,7 @@ for (const overrides of [{ rated: false }, { variant: 'chess960' }, { speed: 'cl
       const eligible = game();
       const skipped = game(overrides);
       const records = skippedFirst ? [skipped, eligible] : [eligible, skipped];
-      assert.throws(() => parseDataset('\n' + text(records)), /строк.*3.*противоречив/i);
+      assert.throws(() => parseDataset('\n' + text(records), null, 'sebajun777'), /строк.*3.*противоречив/i);
     });
   }
 }
@@ -145,7 +145,7 @@ for (const overrides of [{ rated: false }, { variant: 'chess960' }, { speed: 'cl
 test('ordinary skipped rows keep their count alongside eligible normalized duplicates', () => {
   const eligible = game();
   const skipped = game({ id: 'Skip1234', rated: false });
-  const result = parseDataset(text([skipped, eligible, { ...eligible, clocks: [5] }, skipped]));
+  const result = parseDataset(text([skipped, eligible, { ...eligible, clocks: [5] }, skipped]), null, 'sebajun777');
   assert.deepEqual(result.report, { rows: 4, unique: 1, duplicates: 1, skipped: 2, ratingPoints: 0, firstGameAt: 1000, lastGameAt: 1000 });
 });
 
@@ -153,7 +153,7 @@ test('conflicting outcomes in repeated skipped games reject at their actual sour
   const skipped = game({ id: 'Skip1234', rated: false });
   const changed = { ...skipped, winner: 'black' };
   for (const records of [[skipped, game(), changed], [changed, game(), skipped]]) {
-    assert.throws(() => parseDataset('\n' + text(records)), /строк.*4.*противоречив/i);
+    assert.throws(() => parseDataset('\n' + text(records), null, 'sebajun777'), /строк.*4.*противоречив/i);
   }
 });
 
@@ -161,30 +161,30 @@ test('repeated skipped games compare normalized fields and keep each skipped row
   const skipped = game({ id: 'Skip1234', rated: false });
   const same = Object.fromEntries(Object.entries({ ...skipped, clocks: [1, 2], unneeded: 'ignored' }).reverse());
   const eligible = game();
-  const result = parseDataset(text([skipped, eligible, same, { ...eligible, clocks: [5] }]));
+  const result = parseDataset(text([skipped, eligible, same, { ...eligible, clocks: [5] }]), null, 'sebajun777');
   assert.deepEqual(result.report, { rows: 4, unique: 1, duplicates: 1, skipped: 2, ratingPoints: 0, firstGameAt: 1000, lastGameAt: 1000 });
 });
 
 test('JSON and validation errors identify the actual source line including blanks', () => {
-  assert.throws(() => parseDataset(`\n${text([game()])}\n\n{`), /line 4|строк.*4/i);
-  assert.throws(() => parseDataset(`\n${text([game()])}\n\n${text([game({ id: 'bad' })])}`), /line 4|строк.*4/i);
+  assert.throws(() => parseDataset(`\n${text([game()])}\n\n{`, null, 'sebajun777'), /line 4|строк.*4/i);
+  assert.throws(() => parseDataset(`\n${text([game()])}\n\n${text([game({ id: 'bad' })])}`, null, 'sebajun777'), /line 4|строк.*4/i);
 });
 
 test('empty files and files containing only skipped games reject', () => {
-  for (const input of ['', '\n \n', text([game({ rated: false })])]) assert.throws(() => parseDataset(input));
+  for (const input of ['', '\n \n', text([game({ rated: false })])]) assert.throws(() => parseDataset(input, null, 'sebajun777'));
 });
 
 test('all game rows and optional ratings validate before a preview returns', () => {
-  assert.throws(() => parseDataset(text([game()]), '{'));
-  assert.throws(() => parseDataset(text([game(), game({ id: 'bad' })])));
-  assert.throws(() => parseDataset(text([game()]), 'null'));
+  assert.throws(() => parseDataset(text([game()]), '{', 'sebajun777'));
+  assert.throws(() => parseDataset(text([game(), game({ id: 'bad' })]), null, 'sebajun777'));
+  assert.throws(() => parseDataset(text([game()]), 'null', 'sebajun777'));
 });
 
 test('text byte limits count UTF-8 and permit the exact size boundary', () => {
   const row = text([game()]);
   const limit = 20 * 1024 * 1024;
-  assert.equal(parseDataset(row + ' '.repeat(limit - Buffer.byteLength(row))).report.unique, 1);
-  assert.throws(() => parseDataset(row + ' '.repeat(limit - Buffer.byteLength(row) - 1) + 'я'), /size|MiB|размер/i);
+  assert.equal(parseDataset(row + ' '.repeat(limit - Buffer.byteLength(row)), null, 'sebajun777').report.unique, 1);
+  assert.throws(() => parseDataset(row + ' '.repeat(limit - Buffer.byteLength(row) - 1) + 'я', null, 'sebajun777'), /size|MiB|размер/i);
   const ratings = '[]';
   assert.deepEqual(normalizeRatingHistory(ratings + ' '.repeat(1024 * 1024 - 2)), []);
   assert.throws(() => normalizeRatingHistory(ratings + ' '.repeat(1024 * 1024 - 3) + 'я'), /size|MiB|размер/i);
@@ -192,9 +192,9 @@ test('text byte limits count UTF-8 and permit the exact size boundary', () => {
 
 test('nonempty row limit includes duplicate and skipped rows', () => {
   const row = text([{ id: 'Abcd1234', rated: true, variant: 'standard', speed: 'bullet', createdAt: 0, lastMoveAt: 0, status: 'draw', players: { white: { user: { id: 'sebajun777' } }, black: { user: { id: 'a' } } } }]);
-  assert.equal(parseDataset(Array(100000).fill(row).join('\n')).report.duplicates, 99999);
+  assert.equal(parseDataset(Array(100000).fill(row).join('\n'), null, 'sebajun777').report.duplicates, 99999);
   const skippedRow = row.replace('Abcd1234', 'Skip1234').replace('"rated":true', '"rated":false');
-  assert.throws(() => parseDataset('\n\n' + [row, ...Array(100000).fill(skippedRow)].join('\n')), /line 100003|строк.*100003/i);
+  assert.throws(() => parseDataset('\n\n' + [row, ...Array(100000).fill(skippedRow)].join('\n'), null, 'sebajun777'), /line 100003|строк.*100003/i);
 });
 
 test('ratings normalize month zero, leapday, duplicate series and sorted dates', () => {
@@ -209,7 +209,7 @@ test('ratings normalize month zero, leapday, duplicate series and sorted dates',
     { name: 'Blitz', points: [] },
     { name: 'Puzzles', points: [{ date: '2024-01-01', rating: 2500 }] },
   ]);
-  assert.equal(parseDataset(text([game()]), input).report.ratingPoints, 4);
+  assert.equal(parseDataset(text([game()]), input, 'sebajun777').report.ratingPoints, 4);
 });
 
 for (const [name, value] of [

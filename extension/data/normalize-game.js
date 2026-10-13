@@ -35,9 +35,15 @@ function player(value, color) {
   return { id, name, rating, ratingDiff, analysis };
 }
 
-export function normalizeGameCandidate(raw, username = 'sebajun777') {
+// Lichess ids are lowercase; the login is compared the same way so its case never matters.
+export function requireUsername(username) {
+  if (typeof username !== 'string' || !username.trim()) throw new Error('Не указан логин Lichess.');
+  return username.toLowerCase();
+}
+
+export function normalizeGameCandidate(raw, username) {
   object(raw, 'game');
-  const profile = string(username, 'username').toLowerCase();
+  const profile = requireUsername(username);
   if (typeof raw.id !== 'string' || !/^[a-zA-Z0-9]{8}$/.test(raw.id)) throw new Error('Некорректный ID партии.');
   if (typeof raw.rated !== 'boolean') throw new Error('Некорректное поле rated.');
   string(raw.variant, 'variant');
@@ -76,7 +82,7 @@ export function normalizeGameCandidate(raw, username = 'sebajun777') {
   return { record, included: raw.rated && raw.variant === 'standard' && SPEEDS.has(raw.speed) && FINISHED.has(raw.status) };
 }
 
-export function normalizeGame(raw, username = 'sebajun777') {
+export function normalizeGame(raw, username) {
   const candidate = normalizeGameCandidate(raw, username);
   return candidate.included ? candidate.record : null;
 }

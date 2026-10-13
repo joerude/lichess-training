@@ -1,4 +1,4 @@
-import { normalizeGameCandidate } from './normalize-game.js';
+import { normalizeGameCandidate, requireUsername } from './normalize-game.js';
 
 const MAX_GAME_BYTES = 20 * 1024 * 1024;
 const MAX_RATING_BYTES = 1024 * 1024;
@@ -47,8 +47,10 @@ export function normalizeRatingHistory(text) {
   }));
 }
 
-export function parseDataset(gamesText, ratingsText = null, username = 'sebajun777') {
+export function parseDataset(gamesText, ratingsText = null, username) {
   requireText(gamesText, MAX_GAME_BYTES, 'История партий');
+  // Checked once up front so a missing login is not reported as a problem of line 1.
+  requireUsername(username);
   const unique = new Map();
   const seen = new Map();
   let rows = 0;
