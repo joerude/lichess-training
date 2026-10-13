@@ -94,3 +94,11 @@ npm run inspect:dataset -- games.ndjson [rating_history.json]
 ## Учебные материалы
 
 Проект ведётся и как практика разработки браузерных расширений. Уроки в `lessons/` (HTML, открываются в браузере) и памятки в `reference/`: от первого `manifest.json` до транзакций IndexedDB и разрешений Firefox. Начать можно с [урока 01](lessons/0001-firefox-first-addon.html).
+
+## Участие
+
+Ошибки и идеи — в [Issues](https://github.com/joerude/lichess-training/issues), изменения — через pull request. Перед отправкой: `npm test`, `npm run lint:addon` и, если меняется интерфейс, `npm run smoke:firefox`. Подробнее — [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Лицензия
+
+Код распространяется по [Mozilla Public License 2.0](LICENSE). Шрифты PT Serif, PT Sans и PT Mono (ParaType) в `extension/fonts/` — по [SIL Open Font License 1.1](extension/fonts/OFL.txt).

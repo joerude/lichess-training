@@ -1,6 +1,7 @@
 {
   "name": "lichess-training",
   "version": "0.4.1",
+  "license": "MPL-2.0",
   "private": true,
   "type": "module",
   "description": "Personal Firefox training journal and addon learning project",
