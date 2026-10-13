@@ -12,6 +12,7 @@
 - [[data-storage-model]] — Модель данных и хранение.
 - [[day-auto-mark-and-suppression]] — Автоотметка дня (`source: 'auto'`) и запрет автоподсчёта после ручной отмены (0.4.1).
 - [[decision-public-puzzle-counter]] — Решение: задачи считаются по публичному счётчику профиля (0.4.1).
+- [[decision-scoresheet-style]] — Оформление «Турнирный бланк»: палитра, шрифты PT, компактный интерфейс.
 - [[decisions-platform-and-storage]] — Решения Firefox, JS, IndexedDB, локальный профиль.
 - [[lesson-01-02-manifest-popup-storage]] — Уроки 01-02 и первое изменение addon: от manifest к сохранённой отметке.
 - [[lesson-03-04-history-and-lichess-api]] — Уроки 03-04: импорт истории и загрузка партий через Lichess API.

@@ -45,3 +45,6 @@
 
 ## [2026-10-12] ingest | Фокус кнопки отметки и причина сбоя счётчика
 Обновлена `verification-status`: фокус после нажатия кнопки отметки с клавиатуры больше не теряется; `npm test` 371/371, `npm run smoke:firefox` 47 проверок без провалов. Ответ `puzzles.refresh` получил поле `reason`, карточка показывает его подсказкой. Источник: `docs/verification.md`, спецификация в `docs/plans/`.
+
+## [2026-10-13] ingest | Оформление «Турнирный бланк»
+Новая страница `decision-scoresheet-style` по спецификации редизайна; `verification-status` — 380/380 тестов и 57 проверок smoke после редизайна. Источники: `docs/plans/2026-10-12-ui-scoresheet-design.md`, `docs/verification.md`.
