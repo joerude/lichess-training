@@ -31,6 +31,20 @@ test('normalizeProfile trims and lowercases the login and keeps only profile fie
   assert.deepEqual(normalizeProfile({ ...SUITE_PROFILE, extra: true }), SUITE_PROFILE);
 });
 
+test('normalizeProfile stores the time zone in its canonical spelling', () => {
+  for (const [typed, canonical] of [
+    ['asia/bishkek', 'Asia/Bishkek'], ['AMERICA/NEW_YORK', 'America/New_York'], ['utc', 'UTC'], ['Europe/London', 'Europe/London'],
+  ]) {
+    assert.equal(normalizeProfile({ username: 'magnus_fan', timeZone: typed }).timeZone, canonical);
+  }
+  try {
+    assert.deepEqual(setActiveProfile({ username: 'magnus_fan', timeZone: 'america/new_york' }), NEW_YORK);
+    assert.deepEqual(activeProfile(), NEW_YORK);
+  } finally {
+    setActiveProfile(SUITE_PROFILE);
+  }
+});
+
 test('normalizeProfile accepts logins of 2 to 30 characters', () => {
   for (const username of ['ab', 'a1', 'a-b_c', 'A'.repeat(30), `9${'_'.repeat(28)}z`, 'sebajun777']) {
     assert.equal(normalizeProfile({ username, timeZone: 'UTC' }).username, username.toLowerCase());

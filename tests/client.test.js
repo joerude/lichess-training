@@ -19,6 +19,21 @@ test('client throws service failures, malformed replies, and unavailable backgro
   await assert.rejects(createClient({ sendMessage: async () => { throw new Error('Background unavailable'); } }).request({}), /Background unavailable/);
 });
 
+test('client carries the string error code of a failed reply into the thrown error', async () => {
+  const failure = reply => createClient({ sendMessage: async () => reply }).request({}).then(() => assert.fail('must reject'), error => error);
+  const coded = await failure({ ok: false, error: 'Сначала укажите свой логин Lichess.', code: 'profile-required' });
+  assert.ok(coded instanceof Error);
+  assert.equal(coded.message, 'Сначала укажите свой логин Lichess.');
+  assert.equal(coded.code, 'profile-required');
+  for (const code of [undefined, null, 11, {}]) {
+    const plain = await failure({ ok: false, error: 'Disk full', code });
+    assert.equal(plain.message, 'Disk full');
+    assert.equal(Object.hasOwn(plain, 'code'), false);
+  }
+  const malformed = await failure({ ok: true, code: 'profile-required' });
+  assert.equal(Object.hasOwn(malformed, 'code'), false);
+});
+
 test('day timer finds Bishkek midnight immediately before and after the UTC boundary', () => {
   assert.equal(nextDayDelay(new Date('2026-10-04T17:59:59.000Z'), 'Asia/Bishkek'), 1050);
   assert.equal(nextDayDelay(new Date('2026-10-04T18:00:00.000Z'), 'Asia/Bishkek'), 86400050);

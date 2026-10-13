@@ -3,7 +3,11 @@ export function createClient(runtime = browser.runtime) {
     async request(command) {
       const result = await runtime.sendMessage(command);
       if (result?.ok === true && Object.hasOwn(result, 'data')) return result.data;
-      if (result?.ok === false && typeof result.error === 'string') throw new Error(result.error);
+      if (result?.ok === false && typeof result.error === 'string') {
+        const error = new Error(result.error);
+        if (typeof result.code === 'string') error.code = result.code;
+        throw error;
+      }
       throw new Error('Расширение не ответило. Откройте журнал заново и повторите попытку.');
     },
   };

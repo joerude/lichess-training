@@ -77,7 +77,7 @@ npm run lint:addon     # web-ext lint
 npm run build:addon    # dist/lichess-training-<версия>.zip
 npm run smoke:firefox  # проверка в настоящем headless Firefox через Marionette
 npm run sign:addon     # подпись для постоянной установки (нужны ключи AMO)
-npm run inspect:dataset -- games.ndjson [rating_history.json]
+npm run inspect:dataset -- <логин> games.ndjson [rating_history.json]
 ```
 
 Код — обычные ES modules без сборщика, в `extension/`:

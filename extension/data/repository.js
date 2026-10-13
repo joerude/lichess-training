@@ -276,9 +276,23 @@ export function createRepository({ indexedDB = globalThis.indexedDB, name = 'lic
     });
   }
 
+  // Wipes every store in one transaction: either all data is gone or, after a failure, none of it.
+  async function clearAll() {
+    const database = await open();
+    return new Promise((resolve, reject) => {
+      const stores = ['journal', 'games', 'ratings', 'historyMeta'];
+      const transaction = database.transaction(stores, 'readwrite');
+      for (const name of stores) transaction.objectStore(name).clear();
+      transaction.oncomplete = () => resolve();
+      transaction.onabort = () => reject(transaction.error || new Error('Удаление данных отменено.'));
+      transaction.onerror = () => {};
+    });
+  }
+
   return { read, transact, readHistory: () => readHistory(), readSyncHistory: () => readHistory(true), importHistory, saveSyncBatch,
     readPractice: () => practiceTransaction(),
     readPuzzleReading,
+    clearAll,
     transactPractice(update) {
       if (typeof update !== 'function') return Promise.reject(new Error('Нужна функция изменения программы.'));
       return practiceTransaction(update);

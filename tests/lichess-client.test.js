@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createLichessClient } from '../extension/data/lichess-client.js';
+import { setActiveProfile, clearActiveProfile } from '../extension/core/profile.js';
 
 const interval = { since: 0, until: 1000 };
 const encoder = new TextEncoder();
@@ -271,6 +272,83 @@ test('reads the public puzzle counter without cookies, token or redirects', asyn
   assert.equal(request.options.credentials, 'omit');
   assert.equal(request.options.redirect, 'error');
   assert.ok(request.options.signal instanceof AbortSignal);
+});
+
+test('both addresses follow the username option and are rebuilt for every request', async () => {
+  let login = 'magnus_fan';
+  const urls = [];
+  const client = createLichessClient({ username: () => login, fetchImpl: async url => {
+    urls.push(new URL(url));
+    return response([urls.at(-1).pathname.startsWith('/api/user/') ? '{"perfs":{"puzzle":{"games":7}}}' : '{"id":"one"}\n']);
+  } });
+  assert.deepEqual(await client.fetchGamesPage(interval), { records: [{ id: 'one' }], rows: 1 });
+  assert.equal(await client.fetchPuzzleCount(), 7);
+  login = 'someone_else';
+  await client.fetchGamesPage(interval);
+  await client.fetchPuzzleCount();
+  assert.deepEqual(urls.map(url => url.origin + url.pathname), [
+    'https://lichess.org/api/games/user/magnus_fan', 'https://lichess.org/api/user/magnus_fan',
+    'https://lichess.org/api/games/user/someone_else', 'https://lichess.org/api/user/someone_else',
+  ]);
+  assert.equal(urls[0].searchParams.get('sort'), 'dateAsc');
+  assert.equal(urls[1].search, '');
+});
+
+test('without the option the login is taken from the active profile at the time of each request', async () => {
+  const paths = [];
+  const client = createLichessClient({ fetchImpl: async url => { paths.push(new URL(url).pathname); return response([]); } });
+  try {
+    setActiveProfile({ username: 'Magnus_Fan', timeZone: 'America/New_York' });
+    await client.fetchGamesPage(interval);
+    clearActiveProfile();
+    await assert.rejects(client.fetchGamesPage(interval), { code: 'profile-required' });
+    await assert.rejects(client.fetchPuzzleCount(), { code: 'profile-required' });
+  } finally {
+    setActiveProfile({ username: 'sebajun777', timeZone: 'Asia/Bishkek' });
+  }
+  await client.fetchGamesPage(interval);
+  assert.deepEqual(paths, ['/api/games/user/magnus_fan', '/api/games/user/sebajun777']);
+});
+
+test('a queued request takes the login at the moment it starts', async () => {
+  const gate = deferred();
+  const paths = [];
+  let login = 'first_login';
+  const client = createLichessClient({ username: () => login, fetchImpl: async url => {
+    paths.push(new URL(url).pathname);
+    if (paths.length === 1) await gate.promise;
+    return response([]);
+  } });
+  const first = client.fetchGamesPage(interval);
+  const second = client.fetchGamesPage(interval);
+  await new Promise(resolve => setImmediate(resolve));
+  login = 'second_login';
+  gate.resolve();
+  await Promise.all([first, second]);
+  assert.deepEqual(paths, ['/api/games/user/first_login', '/api/games/user/second_login']);
+});
+
+test('a login is encoded into the path and a missing one stops the request before the network', async () => {
+  let login = 'a/b?c#d';
+  const urls = [];
+  const client = createLichessClient({ username: () => login, fetchImpl: async url => {
+    urls.push(new URL(url));
+    return response(['{"perfs":{"puzzle":{"games":1}}}']);
+  } });
+  await client.fetchPuzzleCount();
+  await client.fetchGamesPage(interval);
+  assert.equal(urls[0].href, 'https://lichess.org/api/user/a%2Fb%3Fc%23d');
+  assert.equal(urls[1].pathname, '/api/games/user/a%2Fb%3Fc%23d');
+  for (const missing of ['', undefined, null, 42]) {
+    login = missing;
+    await assert.rejects(client.fetchGamesPage(interval), { message: 'Не указан логин Lichess.' });
+    await assert.rejects(client.fetchPuzzleCount(), { message: 'Не указан логин Lichess.' });
+  }
+  assert.equal(urls.length, 2);
+});
+
+test('the username option must be a function', () => {
+  for (const username of ['magnus_fan', null, 42]) assert.throws(() => createLichessClient({ username }));
 });
 
 for (const [name, body] of [

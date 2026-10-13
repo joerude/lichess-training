@@ -6,11 +6,11 @@ const HOUR = 3600000;
 // Background-side state: the profile that every command works for.
 let active = null;
 
+// Returns the canonical spelling ('asia/bishkek' becomes 'Asia/Bishkek'), so what is stored and compared later agrees.
 function requireTimeZone(timeZone) {
   if (typeof timeZone === 'string' && timeZone !== '') {
     try {
-      new Intl.DateTimeFormat('en-US', { timeZone });
-      return timeZone;
+      return new Intl.DateTimeFormat('en-US', { timeZone }).resolvedOptions().timeZone;
     } catch { /* unknown identifier, reported below */ }
   }
   throw new Error('Неизвестный часовой пояс.');

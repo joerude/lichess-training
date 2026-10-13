@@ -1,5 +1,7 @@
-const EXPORT_URL = 'https://lichess.org/api/games/user/sebajun777';
-const PROFILE_URL = 'https://lichess.org/api/user/sebajun777';
+import { activeProfile } from '../core/profile.js';
+
+const EXPORT_URL = 'https://lichess.org/api/games/user/';
+const PROFILE_URL = 'https://lichess.org/api/user/';
 const MAX_BYTES = 8 * 1024 * 1024;
 const PROFILE_MAX_BYTES = 1024 * 1024;
 const MAX_DATE = 8640000000000000;
@@ -58,9 +60,11 @@ function createDeadline(controller, timeoutMs) {
   return { promise, clear: () => clearTimeout(timer) };
 }
 
-export function createLichessClient({ fetchImpl = globalThis.fetch, now = () => Date.now(), timeoutMs = 30000 } = {}) {
-  if (typeof fetchImpl !== 'function' || typeof now !== 'function') {
-    throw new Error('Не заданы функции запроса и времени.');
+// `username` is read whenever a request starts, so a profile that changes in between is followed.
+export function createLichessClient({ fetchImpl = globalThis.fetch, now = () => Date.now(), timeoutMs = 30000,
+  username = () => activeProfile().username } = {}) {
+  if (typeof fetchImpl !== 'function' || typeof now !== 'function' || typeof username !== 'function') {
+    throw new Error('Не заданы функции запроса, времени и логина.');
   }
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error('Некорректное время ожидания запроса.');
 
@@ -114,6 +118,13 @@ export function createLichessClient({ fetchImpl = globalThis.fetch, now = () => 
     }
   }
 
+  // The address of an account endpoint for the login of the moment; a login is never spliced in unencoded.
+  function accountUrl(base) {
+    const login = username();
+    if (typeof login !== 'string' || login === '') throw new Error('Не указан логин Lichess.');
+    return `${base}${encodeURIComponent(login)}`;
+  }
+
   // Game pages and the profile share one queue, so a 429 pause covers both.
   function enqueue(task) {
     const result = queue.then(task);
@@ -122,7 +133,7 @@ export function createLichessClient({ fetchImpl = globalThis.fetch, now = () => 
   }
 
   function requestPage({ since, until, max }) {
-    const url = new URL(EXPORT_URL);
+    const url = new URL(accountUrl(EXPORT_URL));
     url.search = new URLSearchParams({
       since, until, max, sort: 'dateAsc', ongoing: 'true', finished: 'true',
       moves: 'true', opening: 'true', clocks: 'false', evals: 'true', accuracy: 'true',
@@ -165,7 +176,7 @@ export function createLichessClient({ fetchImpl = globalThis.fetch, now = () => 
   }
 
   async function requestPuzzleCount() {
-    const json = await request(PROFILE_URL, 'application/json', async read => {
+    const json = await request(accountUrl(PROFILE_URL), 'application/json', async read => {
       const decoder = new TextDecoder('utf-8', { fatal: true });
       let text = '';
       let wireBytes = 0;

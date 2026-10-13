@@ -6,7 +6,10 @@ export function registerTrainingMessages(runtime, service) {
     try {
       return { ok: true, data: await service.handle(command) };
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : 'Не удалось сохранить журнал. Повторите попытку.' };
+      const reply = { ok: false, error: error instanceof Error ? error.message : 'Не удалось сохранить журнал. Повторите попытку.' };
+      // Only a string code travels; storage errors carry numeric ones that mean nothing to a page.
+      if (typeof error?.code === 'string') reply.code = error.code;
+      return reply;
     }
   });
 }
