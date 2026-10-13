@@ -12,7 +12,8 @@
     "inspect:dataset": "node scripts/inspect-dataset.js",
     "lint:addon": "web-ext lint --source-dir extension --warnings-as-errors --no-config-discovery",
     "build:addon": "web-ext build --source-dir extension --artifacts-dir dist --filename lichess-training-{version}.zip --overwrite-dest --no-config-discovery",
-    "smoke:firefox": "npm run build:addon && node scripts/firefox-smoke.mjs"
+    "smoke:firefox": "npm run build:addon && node scripts/firefox-smoke.mjs",
+    "sign:addon": "web-ext sign --channel=unlisted --source-dir extension --artifacts-dir dist --no-config-discovery"
   },
   "devDependencies": {
     "fake-indexeddb": "6.2.5",
