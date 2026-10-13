@@ -23,7 +23,7 @@ export function mountPractice({ client, setExternalBusy, compact = false, docume
   };
   const taskNote = (task, value) => {
     if (task.source === 'games') return value.coverage.partial ? 'История неполная: показаны известные партии. Число ниже цели может быть неполным.' : `Из сохранённых завершённых rated standard партий, загруженных до ${loadedAt(value.coverage.completedUntil)}.`;
-    if (task.source === 'manual') return 'Задачи засчитываются по счётчику Lichess при открытии popup или отметкой в карточке тактики ниже.';
+    if (task.source === 'manual') return 'Задачи засчитываются по счётчику Lichess при открытии popup или отметкой в блоке «Задачи на Lichess».';
     if (task.source === 'auto') return 'Засчитано автоматически по счётчику задач Lichess.';
     if (task.source === 'review') return 'Сохраните собственную заметку к партии ниже.';
     return null;
