@@ -12,6 +12,12 @@ const PORT = Number(process.env.FIREFOX_SMOKE_PORT ?? 2831);
 const ORIGIN = 'https://lichess.org/*';
 const TIME_ZONE = 'Asia/Bishkek';
 const MIN_FIREFOX = 140;
+const DAY_MS = 86_400_000;
+// The midnight scenario must start inside this window of the Bishkek day (milliseconds since 00:00:00)
+// and looks at the popup once the grace time after the day change has passed.
+const MIDNIGHT_FROM_MS = (23 * 3600 + 50 * 60) * 1000;
+const MIDNIGHT_TO_MS = (23 * 3600 + 59 * 60 + 40) * 1000;
+const MIDNIGHT_GRACE_MS = 25_000;
 
 // Texts of the extension that the checks compare against.
 const NO_ACCESS = 'Автоподсчёт выключен: подключите Lichess на основном экране';
@@ -35,6 +41,8 @@ const SCENARIOS = [
   { name: 'network', network: true, run: networkLoss, title: 'обрыв сети и пометка «данные могли устареть»' },
   { name: 'keys', network: false, run: keys, title: 'порядок Tab и Enter в popup' },
   { name: 'dashboard', network: true, run: dashboardFirst, title: 'показание, снятое основным экраном без popup' },
+  // Not part of the usual run: it only starts when named in --only, and only near midnight in Bishkek.
+  { name: 'midnight', network: true, explicit: true, run: midnight, title: 'смена суток при открытом popup, только явно: --only=midnight' },
 ];
 
 const HELP = `Проверка расширения в настоящем Firefox (headless, Marionette, без geckodriver).
@@ -56,10 +64,19 @@ ${SCENARIOS.map(scenario => `  ${scenario.name.padEnd(10)}${scenario.title}${sce
 
 ВНИМАНИЕ: сценарии dialog, auto, backup, network и dashboard делают несколько реальных запросов
 к публичному API Lichess (счётчик задач профиля, загрузка партий). Без сети используйте --no-network.
-Не запускайте проверку около полуночи по Бишкеку (UTC+6): день в расширении сменится посреди сценария.
+Обычный прогон не запускайте около полуночи по Бишкеку (UTC+6): день в расширении сменится посреди сценария.
+
+Именно эту смену суток проверяет сценарий midnight. В обычный прогон он не входит, запускается только явно:
+  npm run smoke:firefox -- --only=midnight
+Запускайте его с ${hms(MIDNIGHT_FROM_MS)} до ${hms(MIDNIGHT_TO_MS)} по Бишкеку, например в 23:58. Вне этого окна он печатает
+сообщение и завершается кодом 2, не запуская Firefox. Он открывает popup, снимает показание «0 / N»,
+затем около двух минут ждёт ${hms(MIDNIGHT_GRACE_MS)} следующих суток и без перезагрузки проверяет новую дату, «0 / N», фразу и «счёт с»;
+после этого заново открывает popup и основной экран. Делает реальный запрос счётчика задач к Lichess,
+поэтому с --no-network пропускается.
 
 Переменная FIREFOX_SMOKE_PORT задаёт порт Marionette (по умолчанию 2831).
-Код выхода: 0, если все проверки прошли; 1 при провалах, исключениях и неверных аргументах.
+Код выхода: 0, если все проверки прошли; 1 при провалах, исключениях и неверных аргументах;
+2, если midnight запущен вне окна ${hms(MIDNIGHT_FROM_MS)}–${hms(MIDNIGHT_TO_MS)} по Бишкеку.
 `;
 
 let current = null;
@@ -87,7 +104,35 @@ function dayOf(date) {
   return `${field('year')}-${field('month')}-${field('day')}`;
 }
 
+const bishkekClock = new Intl.DateTimeFormat('en-GB', { timeZone: TIME_ZONE, hourCycle: 'h23', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+// Milliseconds since 00:00:00 of the Bishkek day that the moment falls on.
+function msIntoDay(date) {
+  const parts = bishkekClock.formatToParts(date);
+  const field = type => Number(parts.find(part => part.type === type).value);
+  return ((field('hour') * 60 + field('minute')) * 60 + field('second')) * 1000 + date.getMilliseconds();
+}
+
+// Milliseconds as HH:MM:SS.
+function hms(ms) {
+  return [Math.floor(ms / 3_600_000), Math.floor(ms / 60_000) % 60, Math.floor(ms / 1000) % 60].map(part => String(part).padStart(2, '0')).join(':');
+}
+
+function inMidnightWindow(date) {
+  const ms = msIntoDay(date);
+  return ms >= MIDNIGHT_FROM_MS && ms <= MIDNIGHT_TO_MS;
+}
+
+// Milliseconds from the moment to the next 00:00:25 Bishkek time, when the extension has long since changed the day.
+function msUntilAfterMidnight(date) {
+  const ms = msIntoDay(date);
+  return (ms < MIDNIGHT_GRACE_MS ? 0 : DAY_MS) + MIDNIGHT_GRACE_MS - ms;
+}
+
 class ConnectionClosed extends Error {}
+
+// The midnight scenario was started outside its window: nothing was launched, the exit code is 2.
+class OutsideWindow extends Error {}
 
 // Marionette frames are "<byte length>:<json>"; commands are [0, id, name, params], replies [1, id, error, result].
 class Marionette {
@@ -215,6 +260,7 @@ const readPopup = () => {
     status: text('today-status'), button: text('completion'), summary: text('program-summary'),
     controlsDisabled: Boolean(document.getElementById('completion')?.disabled || document.getElementById('refresh')?.disabled),
     error: document.getElementById('error')?.hidden === false ? text('error') : null,
+    date: text('today-date'), dateTime: document.getElementById('today-date')?.getAttribute('datetime') ?? null,
   };
 };
 
@@ -230,6 +276,8 @@ const readDashboard = () => {
     controlsDisabled: Boolean(byId('completion')?.disabled || byId('export')?.disabled || byId('refresh')?.disabled),
     restoreOpen: byId('restore-dialog')?.open ?? null,
     restorePreview: [...document.querySelectorAll('#backup-preview dt')].map(term => `${text(term)}: ${text(term.nextElementSibling)}`).join('; '),
+    todayDate: text(byId('today-date')), todayDateTime: byId('today-date')?.getAttribute('datetime') ?? null,
+    programDate: text(byId('program-date')), programDateTime: byId('program-date')?.getAttribute('datetime') ?? null,
   };
 };
 
@@ -614,6 +662,97 @@ async function dashboardFirst(s) {
     `${show(counted.status)}, ${show(counted.phrase)}`);
 }
 
+// "счёт с 23:58 · обновлено 23:59" -> minutes since midnight of the first time, or null while the caption is not there.
+const sinceMinutes = meta => {
+  const match = /^счёт с (\d\d):(\d\d)/.exec(meta ?? '');
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+};
+
+const taskWord = count => {
+  if (count % 100 >= 11 && count % 100 <= 14) return 'задач';
+  if (count % 10 === 1) return 'задача';
+  return count % 10 >= 2 && count % 10 <= 4 ? 'задачи' : 'задач';
+};
+const startPhrase = target => `Начнём — ${target} ${taskWord(target)} на сегодня`;
+
+// What the midnight scenario judges. These functions only look at readings and moments handed to them, so they can be
+// tried on made-up readings at any time of day. Each item is [name, condition, details] for check().
+function beforeMidnightChecks(before, seen) {
+  const ms = msIntoDay(seen);
+  const today = dayOf(seen);
+  return [
+    ['до полуночи: показание снято до 00:00 (запуск не опоздал)', ms >= MIDNIGHT_FROM_MS, `${hms(ms)} по Бишкеку`],
+    ['до полуночи: в карточке «0 / N»', !before.solvedHidden && before.solved === '0 /' && /^\d+$/.test(before.target ?? ''), `${show(before.solved)} ${show(before.target)}`],
+    ['до полуночи: в подписи «счёт с ЧЧ:ММ»', sinceMinutes(before.meta) !== null, show(before.meta)],
+    ['до полуночи: дата карточки — сегодняшняя по Бишкеку', before.dateTime === today, `${show(before.date)}, datetime ${show(before.dateTime)}, сегодня ${today}`],
+  ];
+}
+
+// "00:00 or later" only tells the new day from the old one right after midnight: a caption left over from the evening
+// ("счёт с 23:58") is later than the current minute of the new day, a fresh one ("счёт с 00:00") is not.
+function afterMidnightChecks(before, after, checkedAt) {
+  const nextDay = dayOf(checkedAt);
+  const ms = msIntoDay(checkedAt);
+  const since = sinceMinutes(after.meta);
+  return [
+    ['после полуночи без перезагрузки: #today-date сменилась на новую дату', after.date !== before.date && after.dateTime === nextDay,
+      `${show(before.date)} → ${show(after.date)}, datetime ${show(after.dateTime)}, ожидалось ${nextDay}`],
+    ['после полуночи: карточка задач показывает «0 / N»', !after.solvedHidden && after.solved === '0 /' && /^\d+$/.test(after.target ?? ''),
+      `${show(after.solved)} ${show(after.target)}`],
+    ['после полуночи: фраза «Начнём — N задач на сегодня»', after.phrase === startPhrase(Number(after.target)), show(after.phrase)],
+    ['после полуночи: «счёт с» показывает время нового дня — 00:00 или позже', since !== null && since <= Math.floor(ms / 60_000),
+      `${show(after.meta)}, сейчас ${hms(ms)} по Бишкеку`],
+  ];
+}
+
+function reopenChecks(nextDay, after, again) {
+  return [
+    ['повторное открытие: та же дата', again.date === after.date && again.dateTime === nextDay,
+      `${show(again.date)}, datetime ${show(again.dateTime)}, было ${show(after.date)}`],
+    ['повторное открытие: «0 / N»', !again.solvedHidden && again.solved === '0 /' && again.target === after.target,
+      `${show(again.solved)} ${show(again.target)}, было ${show(after.solved)} ${show(after.target)}`],
+    ['повторное открытие: та же фраза «Начнём — N задач на сегодня»', again.phrase === after.phrase && again.phrase === startPhrase(Number(again.target)),
+      show(again.phrase)],
+  ];
+}
+
+function dashboardChecks(nextDay, before, board) {
+  return [
+    ['основной экран: #today-date показывает новую дату', board.todayDate !== before.date && board.todayDateTime === nextDay,
+      `${show(board.todayDate)}, datetime ${show(board.todayDateTime)}, ожидалось ${nextDay}`],
+    ['основной экран: #program-date показывает новую дату', board.programDate !== before.date && board.programDateTime === nextDay,
+      `${show(board.programDate)}, datetime ${show(board.programDateTime)}, ожидалось ${nextDay}`],
+  ];
+}
+
+const runChecks = items => { for (const [name, condition, details] of items) check(name, condition, details); };
+
+// Takes the first reading before midnight, keeps the popup open until 00:00:25 and looks at it without a reload.
+async function midnight(s) {
+  await s.grant();
+  const before = await s.popup(state => !state.solvedHidden && sinceMinutes(state.meta) !== null && state.dateTime !== null);
+  const seen = new Date();
+  await s.shot('popup-before');
+  const prior = beforeMidnightChecks(before, seen);
+  runChecks(prior);
+  // Without a reading from before midnight there is nothing to compare the new day with.
+  if (!prior.every(([, condition]) => condition)) return;
+  const wait = msUntilAfterMidnight(new Date());
+  console.log(`  … popup открыт, ждём ${hms(MIDNIGHT_GRACE_MS)} по Бишкеку: осталось около ${Math.round(wait / 1000)} с`);
+  await sleep(wait);
+  const after = await s.watchPopup(state => state.date !== before.date && state.meta !== before.meta);
+  const checkedAt = new Date();
+  await s.shot('popup-after');
+  runChecks(afterMidnightChecks(before, after, checkedAt));
+  const nextDay = dayOf(checkedAt);
+  const again = await s.popup(state => !state.solvedHidden);
+  await s.shot('popup-reopened');
+  runChecks(reopenChecks(nextDay, after, again));
+  const board = await s.dashboard();
+  await s.shot('dashboard');
+  runChecks(dashboardChecks(nextDay, before, board));
+}
+
 function parseArgs(argv) {
   const options = { only: null, noNetwork: false, help: false };
   for (const arg of argv) {
@@ -748,15 +887,22 @@ async function main() {
     return;
   }
   if (!Number.isInteger(PORT) || PORT < 1024 || PORT > 65535) throw new Error(`Некорректный FIREFOX_SMOKE_PORT: ${process.env.FIREFOX_SMOKE_PORT}.`);
+  // Scenarios marked explicit (midnight) run only when --only names them.
+  const chosen = SCENARIOS.filter(scenario => (options.only ? options.only.includes(scenario.name) : !scenario.explicit));
+  const selected = chosen.filter(scenario => !(options.noNetwork && scenario.network));
+  const skipped = chosen.filter(scenario => !selected.includes(scenario));
+  if (selected.length === 0) throw new Error(`Нет сценариев для запуска: --no-network исключил все выбранные (${skipped.map(scenario => scenario.name).join(', ')}).`);
+  // Checked before anything is built, found or launched: outside its window the midnight scenario has nothing to watch.
+  const now = new Date();
+  if (selected.some(scenario => scenario.name === 'midnight') && !inMidnightWindow(now)) {
+    throw new OutsideWindow(`Сценарий midnight запускают с ${hms(MIDNIGHT_FROM_MS)} до ${hms(MIDNIGHT_TO_MS)} по Бишкеку, сейчас ${hms(msIntoDay(now))}. ` +
+      'Он ждёт смены суток при открытом popup; Firefox не запущен. Повторите в это окно: npm run smoke:firefox -- --only=midnight');
+  }
   const { version } = JSON.parse(await readFile(join(ROOT, 'package.json'), 'utf8'));
   const zip = join(ROOT, 'dist', `lichess-training-${version}.zip`);
   try { await access(zip); } catch {
     throw new Error(`Не найден пакет ${relative(ROOT, zip)}. Соберите его: npm run build:addon (npm run smoke:firefox делает это сам).`);
   }
-  const chosen = SCENARIOS.filter(scenario => !options.only || options.only.includes(scenario.name));
-  const selected = chosen.filter(scenario => !(options.noNetwork && scenario.network));
-  const skipped = chosen.filter(scenario => !selected.includes(scenario));
-  if (selected.length === 0) throw new Error('Нет сценариев для запуска: --no-network исключил все выбранные.');
   const firefox = checkFirefox();
   await ensurePortFree(PORT);
   const dir = await mkdtemp(join(tmpdir(), 'lichess-training-smoke-'));
@@ -788,5 +934,5 @@ process.on('SIGTERM', () => process.exit(143));
 
 main().catch(error => {
   console.error(error.message);
-  process.exitCode = 1;
+  process.exitCode = error instanceof OutsideWindow ? 2 : 1;
 });

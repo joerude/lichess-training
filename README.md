@@ -79,6 +79,8 @@ npm run smoke:firefox
 
 Сценарии `dialog`, `auto`, `backup`, `network` и `dashboard` делают несколько реальных запросов к публичному API lichess.org: счётчик задач профиля и загрузка партий. Флаг `--only=basic,keys` запускает выбранные сценарии, `--no-network` пропускает все, кроме `basic` и `keys`: `npm run smoke:firefox -- --no-network`. Порт Marionette — 2831, меняется переменной `FIREFOX_SMOKE_PORT`; справка — `node scripts/firefox-smoke.mjs --help`.
 
+Сценарий `midnight` (смена суток при открытом popup) в обычный прогон не входит: он запускается только явно, `npm run smoke:firefox -- --only=midnight`, с 23:50:00 до 23:59:40 по Бишкеку (вне окна завершается кодом 2, Firefox не запускается), около двух минут ждёт 00:00:25 и делает реальный запрос счётчика к Lichess; с `--no-network` пропускается.
+
 ## Практика и дальнейший план
 
 Начни с [урока 02](lessons/0002-persisted-training.html): переименуй заголовок popup, перезагрузи addon и проследи путь сохранённой отметки. Затем [урок 03](lessons/0003-history-import.html): импортируй свои данные дважды, проверь game ID и транзакцию. [Урок 04](lessons/0004-lichess-api.html) — разрешение Firefox, HTTP-запрос и продолжение загрузки после ошибки. [Урок 05](lessons/0005-daily-program.html) — уникальная награда, общая транзакция и самостоятельное изменение расчёта уровня. [Пошаговое объяснение рабочего кода](docs/learning/first-working-addon.md) добавляет упражнение с резервной копией.
