@@ -146,3 +146,29 @@ test('automatic puzzle completion is explained on the dashboard', async () => {
   await mounted.refresh();
   assert.match(allText(element('program-tasks')), /Засчитано автоматически по счётчику задач Lichess\./);
 });
+
+test('task tiles keep the count and status visible and put the explanation in a hint in the tile header', async () => {
+  const value = base();
+  value.tasks.push({ id: 'reviews', current: 0, target: 1, completed: false, source: 'review' });
+  const { mounted, element } = fixture(async () => value);
+  await mounted.refresh();
+  const [bullet, puzzles, reviews] = element('program-tasks').children;
+  const [head, count, status] = bullet.children;
+  assert.equal(bullet.children.length, 3, 'a tile is its header, the count and the status');
+  assert.equal(head.className, 'program-task-head');
+  assert.equal(head.children[0].textContent, 'Bullet');
+  const [mark, body] = head.children[1].children;
+  assert.equal(head.children[1].className, 'hint');
+  assert.equal(mark.textContent, '?');
+  assert.equal(mark.attributes['aria-label'], 'Подробнее');
+  assert.equal(body.className, 'hint-body');
+  assert.match(body.textContent, /История неполная/);
+  assert.equal(count.className, 'program-count');
+  assert.equal(count.textContent, '2 из 5');
+  assert.equal(status.textContent, '○ В процессе');
+  assert.equal(puzzles.className, 'program-task done');
+  assert.equal(puzzles.children[2].textContent, '✓ Выполнено · +20 XP');
+  assert.match(allText(puzzles.children[0]), /Задачи засчитываются по счётчику Lichess/);
+  assert.equal(reviews.children[0].children[0].textContent, 'Разбор');
+  assert.match(allText(reviews.children[0]), /Сохраните собственную заметку к партии ниже\./);
+});

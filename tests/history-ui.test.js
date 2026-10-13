@@ -237,3 +237,63 @@ test('a pending import notification permits the next save without unlocking its 
   assert.equal(writes.length, 2);
   assert.equal(notifications, 2);
 });
+
+// A fake page with only what mountHistory touches, plus the four series buttons in their group.
+function historyPage() {
+  const nodes = new Map();
+  const document = {
+    visibilityState: 'visible', addEventListener() {},
+    getElementById(id) { if (!nodes.has(id)) nodes.set(id, makeNode(id)); return nodes.get(id); },
+    createElement: (name) => makeNode(name), createElementNS: (namespace, name) => makeNode(name), createDocumentFragment: () => makeNode('fragment'),
+  };
+  function makeNode(name) {
+    const handlers = new Map();
+    return { name, ownerDocument: document, children: [], attributes: {}, dataset: {}, hidden: false, disabled: false, files: [], value: '', textContent: '',
+      append(...children) { this.children.push(...children); },
+      replaceChildren(...children) { this.children = children; },
+      setAttribute(key, value) { this.attributes[key] = String(value); },
+      getAttribute(key) { return this.attributes[key] ?? null; },
+      querySelector: (selector) => document.getElementById(selector.slice(1)),
+      addEventListener(type, handler) { handlers.set(type, handler); },
+      click() { handlers.get('click')?.({ preventDefault() {} }); },
+    };
+  }
+  const group = document.getElementById('history-rating-series');
+  group.children = ['Bullet', 'Blitz', 'Rapid', 'Puzzles'].map((series) => Object.assign(makeNode('button'), { dataset: { series } }));
+  return {
+    document, window: { addEventListener() {} }, element: (id) => document.getElementById(id),
+    pressed: () => Object.fromEntries(group.children.map((button) => [button.dataset.series, button.getAttribute('aria-pressed')])),
+    click: (series) => group.children.find((button) => button.dataset.series === series).click(),
+  };
+}
+
+test('series buttons start on Bullet, redraw the chart with the chosen series and move aria-pressed', async (context) => {
+  const page = historyPage();
+  for (const [key, value] of Object.entries({ document: page.document, window: page.window })) {
+    const original = Object.getOwnPropertyDescriptor(globalThis, key);
+    Object.defineProperty(globalThis, key, { value, configurable: true, writable: true });
+    context.after(() => original ? Object.defineProperty(globalThis, key, original) : Reflect.deleteProperty(globalThis, key));
+  }
+  const ratings = [
+    { name: 'Bullet', points: [{ date: '2026-03-14', rating: 2000 }, { date: '2026-03-15', rating: 2100 }] },
+    { name: 'Blitz', points: [{ date: '2026-03-14', rating: 1800 }, { date: '2026-03-15', rating: 1850 }] },
+    { name: 'Puzzles', points: [{ date: '2026-03-15', rating: 2700 }] },
+  ];
+  const mounted = history.mountHistory({ client: { request: async () => ({ ...overview, ratings }) }, showSuccess() {}, setExternalBusy() {} });
+  await mounted.refresh();
+  const chartLabel = () => page.element('history-chart').children[0].attributes['aria-label'];
+  assert.match(chartLabel(), /Bullet/);
+  assert.deepEqual(page.pressed(), { Bullet: 'true', Blitz: 'false', Rapid: 'false', Puzzles: 'false' });
+  page.click('Blitz');
+  assert.match(chartLabel(), /Blitz/);
+  assert.doesNotMatch(chartLabel(), /Bullet/);
+  assert.deepEqual(page.pressed(), { Bullet: 'false', Blitz: 'true', Rapid: 'false', Puzzles: 'false' });
+  await mounted.refresh();
+  assert.match(chartLabel(), /Blitz/, 'a refreshed overview keeps the chosen series');
+  page.click('Puzzles');
+  assert.match(chartLabel(), /Puzzles/);
+  assert.deepEqual(page.pressed(), { Bullet: 'false', Blitz: 'false', Rapid: 'false', Puzzles: 'true' });
+  page.click('Rapid');
+  assert.match(page.element('history-chart').children[0].textContent, /Rapid/, 'a series without points says so');
+  assert.deepEqual(page.pressed(), { Bullet: 'false', Blitz: 'false', Rapid: 'true', Puzzles: 'false' });
+});

@@ -1,6 +1,6 @@
 import { formatDay } from './page.js';
 
-const labels = { bullet: 'Bullet', blitz: 'Blitz', rapid: 'Rapid', puzzles: 'Задачи', reviews: 'Собственный разбор' };
+const labels = { bullet: 'Bullet', blitz: 'Blitz', rapid: 'Rapid', puzzles: 'Задачи', reviews: 'Разбор' };
 const targetIds = Object.keys(labels);
 const timeFormat = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Asia/Bishkek', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const loadedAt = (value) => timeFormat.format(new Date(value));
@@ -12,6 +12,21 @@ export function mountPractice({ client, setExternalBusy, compact = false, docume
     if (text !== undefined) item.textContent = String(text);
     if (className) item.className = className;
     return item;
+  };
+  // A "?" that opens a short explanation without scripts: <details class="hint">, styled in styles.css.
+  const hint = (text) => {
+    const details = node('details', undefined, 'hint');
+    const summary = node('summary', '?');
+    summary.setAttribute('aria-label', 'Подробнее');
+    details.append(summary, node('div', text, 'hint-body'));
+    return details;
+  };
+  const taskNote = (task, value) => {
+    if (task.source === 'games') return value.coverage.partial ? 'История неполная: показаны известные партии. Число ниже цели может быть неполным.' : `Из сохранённых завершённых rated standard партий, загруженных до ${loadedAt(value.coverage.completedUntil)}.`;
+    if (task.source === 'manual') return 'Задачи засчитываются по счётчику Lichess при открытии popup или отметкой в карточке тактики ниже.';
+    if (task.source === 'auto') return 'Засчитано автоматически по счётчику задач Lichess.';
+    if (task.source === 'review') return 'Сохраните собственную заметку к партии ниже.';
+    return null;
   };
   let snapshot = null;
   let tail = Promise.resolve();
@@ -48,11 +63,11 @@ export function mountPractice({ client, setExternalBusy, compact = false, docume
     element('program-xp-note').textContent = 'XP за партии сохраняется при восстановлении копии без истории партий. Выполнение заданий и недели считается по доступным фактам; после импорта истории оно обновится.';
     const cards = value.tasks.map((task) => {
       const card = node('li', undefined, `program-task${task.completed ? ' done' : ''}`);
-      card.append(node('h3', labels[task.id]), node('p', `${task.current} из ${task.target}`, 'program-count'), node('p', task.completed ? '✓ Выполнено · +20 XP' : '○ В процессе', 'caption'));
-      if (task.source === 'games') card.append(node('p', value.coverage.partial ? 'История неполная: показаны известные партии. Число ниже цели может быть неполным.' : `Из сохранённых завершённых rated standard партий, загруженных до ${loadedAt(value.coverage.completedUntil)}.`, 'caption'));
-      if (task.source === 'manual') card.append(node('p', 'Задачи засчитываются по счётчику Lichess при открытии popup или отметкой в карточке тактики ниже.', 'caption'));
-      if (task.source === 'auto') card.append(node('p', 'Засчитано автоматически по счётчику задач Lichess.', 'caption'));
-      if (task.source === 'review') card.append(node('p', 'Сохраните собственную заметку к партии ниже.', 'caption'));
+      const head = node('div', undefined, 'program-task-head');
+      head.append(node('h3', labels[task.id]));
+      const note = taskNote(task, value);
+      if (note) head.append(hint(note));
+      card.append(head, node('p', `${task.current} из ${task.target}`, 'program-count'), node('p', task.completed ? '✓ Выполнено · +20 XP' : '○ В процессе', 'caption'));
       return card;
     });
     element('program-tasks').replaceChildren(...cards);

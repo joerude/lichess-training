@@ -21,14 +21,14 @@ const COUNTED = '✓ Засчитано по счётчику Lichess';
 const REACHED = 'Норма выполнена! +20 XP';
 const UNDONE = 'Норма набрана — отметка снята вручную';
 const DASHBOARD_NOTE = 'Засчитано автоматически по счётчику задач Lichess.';
-const DASHBOARD_CAPTION = 'Автоподсчёт по профилю Lichess или отметка вручную';
+const DASHBOARD_HINT = 'Автоподсчёт по профилю Lichess или отметка вручную';
 const POPUP_HINT = 'Автоподсчёт по профилю Lichess · Время Бишкека';
 const STALE = 'данные могли устареть';
 const CONNECT = 'Подключить Lichess';
 const REFRESH = 'Обновить с Lichess';
 
 const SCENARIOS = [
-  { name: 'basic', network: false, run: basic, title: 'popup без доступа, ручная отметка и её отмена' },
+  { name: 'basic', network: false, run: basic, title: 'popup без доступа, ручная отметка и её отмена, подсказка и серии рейтинга на основном экране' },
   { name: 'dialog', network: true, run: dialog, title: 'настоящий диалог разрешения и первая загрузка' },
   { name: 'auto', network: true, run: auto, title: 'автозачёт по счётчику, отмена и запрет возврата' },
   { name: 'backup', network: true, run: backup, title: 'экспорт и восстановление копии после автозачёта' },
@@ -223,7 +223,7 @@ const readDashboard = () => {
   const byId = id => document.getElementById(id);
   const tasks = [...document.querySelectorAll('#program-tasks > li')].map(item => [...item.children].map(text).join(' '));
   return {
-    caption: text(document.querySelector('#today-card .caption')), tasks, puzzleTask: tasks.find(task => task.startsWith('Задачи')) ?? null,
+    hint: text(document.querySelector('#today-card .hint-body')), tasks, puzzleTask: tasks.find(task => task.startsWith('Задачи')) ?? null,
     status: text(byId('today-status')), summary: text(byId('program-summary')),
     syncRun: text(byId('sync-run')), syncError: byId('sync-error')?.hidden === false ? text(byId('sync-error')) : null,
     error: byId('error')?.hidden === false ? text(byId('error')) : null,
@@ -244,6 +244,18 @@ const readHint = () => {
   const details = document.querySelector('#today-card details.hint');
   const body = details?.querySelector('.hint-body');
   return { open: details?.open ?? null, shown: Boolean(body?.checkVisibility()), text: body?.textContent.replace(/\s+/g, ' ').trim() ?? null };
+};
+
+// The rating series choice under the statistics: a group of buttons, and what the chart says about the chosen series.
+const readSeries = () => {
+  const group = document.getElementById('history-rating-series');
+  const buttons = [...(group?.querySelectorAll('button') ?? [])];
+  return {
+    role: group?.getAttribute('role') ?? null, label: group?.getAttribute('aria-label') ?? null,
+    series: buttons.map(button => button.dataset.series), titles: buttons.map(button => button.textContent.trim()),
+    pressed: buttons.map(button => button.getAttribute('aria-pressed')),
+    chart: document.getElementById('history-chart')?.textContent.replace(/\s+/g, ' ').trim() ?? null,
+  };
 };
 
 const clickById = id => document.getElementById(id).click();
@@ -418,7 +430,22 @@ async function basic(s) {
   check('отмена отметки: 0 XP в строке программы', undone.status === OPEN && xp(undone.summary) === 0, show(undone.summary));
   const board = await s.dashboard();
   await s.shot('dashboard');
-  check('основной экран: подпись об автоподсчёте или отметке вручную', board.caption?.includes(DASHBOARD_CAPTION), show(board.caption));
+  check('основной экран: подпись об автоподсчёте или отметке вручную лежит в подсказке «?»', board.hint?.includes(DASHBOARD_HINT), show(board.hint));
+  const shut = await s.m.run(readHint);
+  await s.m.click('#today-card details.hint > summary');
+  const open = await s.m.run(readHint);
+  await s.shot('dashboard-hint-open');
+  check('основной экран: подсказка «?» закрыта, пока на неё не нажали', shut.open === false && !shut.shown, show(shut));
+  check('основной экран: после нажатия на «?» подпись показана', open.open === true && open.shown && open.text?.includes(DASHBOARD_HINT), show(open));
+  const series = await until(() => s.m.run(readSeries), state => /Bullet/.test(state.chart ?? ''));
+  check('график рейтинга: группа «Серия рейтинга» с кнопками Bullet, Blitz, Rapid, Задачи',
+    series.role === 'group' && series.label === 'Серия рейтинга' && series.series.join() === 'Bullet,Blitz,Rapid,Puzzles' && series.titles.join() === 'Bullet,Blitz,Rapid,Задачи', show(series));
+  check('график рейтинга: сначала нажата только Bullet', series.pressed.join() === 'true,false,false,false', show(series.pressed));
+  await s.m.click('#history-rating-series [data-series="Blitz"]');
+  const chosen = await until(() => s.m.run(readSeries), state => state.pressed[1] === 'true', 5_000);
+  await s.shot('dashboard-blitz');
+  check('клик по Blitz: aria-pressed="true" только у Blitz', chosen.pressed.join() === 'false,true,false,false', show(chosen.pressed));
+  check('клик по Blitz: график перерисован для Blitz', /Blitz/.test(chosen.chart ?? '') && !/Bullet/.test(chosen.chart ?? ''), show(chosen.chart));
 }
 
 async function dialog(s) {

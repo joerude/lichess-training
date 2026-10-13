@@ -1,4 +1,4 @@
-import { mountTrainingPage, formatDay, puzzleNoun } from './page.js';
+import { mountTrainingPage, puzzleNoun } from './page.js';
 import { mountHistory } from './history.js';
 import { mountSync } from './sync.js';
 import { mountPractice } from './practice.js';
@@ -9,33 +9,8 @@ let trainingLoaded = false;
 
 const page = mountTrainingPage((snapshot) => {
   document.getElementById('completed-days').textContent = snapshot.completedDays;
-  const list = document.getElementById('week');
-  const entries = [...snapshot.week].sort((a, b) => a.date.localeCompare(b.date));
-  const fragment = document.createDocumentFragment();
-  for (const day of entries) {
-    const item = document.createElement('li');
-    item.className = `week-day${day.completed ? ' done' : ''}${day.date === snapshot.today.date ? ' current' : ''}`;
-    const weekday = document.createElement('span');
-    weekday.className = 'weekday';
-    weekday.textContent = formatDay(day.date, { weekday: 'short' });
-    const mark = document.createElement('span');
-    mark.className = 'day-mark';
-    mark.textContent = day.completed ? '✓' : day.scheduled ? '○' : '—';
-    mark.setAttribute('aria-hidden', 'true');
-    const date = document.createElement('time');
-    date.dateTime = day.date;
-    date.textContent = formatDay(day.date, { day: 'numeric', month: 'short' });
-    const status = document.createElement('span');
-    status.className = 'sr-only';
-    status.textContent = day.completed ? 'Выполнено' : day.scheduled ? 'Не отмечено' : 'До начала программы';
-    if (day.date === snapshot.today.date) status.textContent += ', сегодня';
-    item.append(weekday, mark, date, status);
-    fragment.append(item);
-  }
-  list.replaceChildren(fragment);
   if (trainingLoaded || practice?.needsRefresh(snapshot.today.date)) void practice?.refresh();
   trainingLoaded = true;
-  document.getElementById('week-summary').textContent = `Отмечено дней: ${entries.filter((day) => day.completed).length} из ${entries.filter((day) => day.scheduled).length}`;
 });
 
 const setPageBusy = page.setExternalBusy;

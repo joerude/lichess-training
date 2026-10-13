@@ -95,14 +95,22 @@ export function mountHistory({ client, showSuccess, setExternalBusy, onImported 
   const importButton = document.getElementById('history-import-button');
   const refreshButton = document.getElementById('history-refresh');
   const clearRatings = document.getElementById('history-clear-ratings');
-  const series = document.getElementById('history-rating-series');
+  // The series choice is a group of toggle buttons (data-series is the series name in the stored ratings).
+  const seriesButtons = [...document.getElementById('history-rating-series').children];
   const errorBox = document.getElementById('history-error');
   const notice = document.getElementById('history-notice');
   let busy = false;
   let approved = false;
   let overview = null;
   let errorSource = null;
+  let selectedSeries = 'Bullet';
 
+  function drawChart() {
+    if (overview) renderRatingChart(document.getElementById('history-chart'), overview.ratings, selectedSeries);
+  }
+  function markSeries() {
+    for (const button of seriesButtons) button.setAttribute('aria-pressed', String(button.dataset.series === selectedSeries));
+  }
   function updateControls() {
     panel.setAttribute('aria-busy', String(busy));
     gamesFile.disabled = busy;
@@ -127,7 +135,7 @@ export function mountHistory({ client, showSuccess, setExternalBusy, onImported 
     renderOverview(value) {
       overview = value;
       renderHistoryOverview(panel, value);
-      renderRatingChart(document.getElementById('history-chart'), value.ratings, series.value);
+      drawChart();
       if (errorSource === 'history.getOverview') {
         errorBox.hidden = true;
         errorSource = null;
@@ -165,15 +173,20 @@ export function mountHistory({ client, showSuccess, setExternalBusy, onImported 
   previewButton.addEventListener('click', () => { notice.hidden = true; void controller.previewFiles(gamesFile.files[0], ratingsFile.files[0]); });
   importButton.addEventListener('click', () => { void controller.import(); });
   refreshButton.addEventListener('click', () => { void controller.refresh(); });
-  series.addEventListener('change', () => {
-    if (overview) renderRatingChart(document.getElementById('history-chart'), overview.ratings, series.value);
-  });
+  for (const button of seriesButtons) {
+    button.addEventListener('click', () => {
+      selectedSeries = button.dataset.series;
+      markSeries();
+      drawChart();
+    });
+  }
   function onResume() {
     if (document.visibilityState === 'visible') void controller.refresh();
   }
   window.addEventListener('focus', onResume);
   window.addEventListener('pageshow', onResume);
   document.addEventListener('visibilitychange', onResume);
+  markSeries();
   updateControls();
   return { async refresh() { await controller.refresh(); } };
 }
