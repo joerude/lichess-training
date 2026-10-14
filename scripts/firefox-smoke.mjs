@@ -28,7 +28,11 @@ const REACHED = 'Норма выполнена! +20 XP';
 const UNDONE = 'Норма набрана — отметка снята вручную';
 const DASHBOARD_NOTE = 'Засчитано автоматически по счётчику задач Lichess.';
 const DASHBOARD_HINT = 'Автоподсчёт по профилю Lichess или отметка вручную';
-const POPUP_HINT = 'Автоподсчёт по профилю Lichess · Время Бишкека';
+const POPUP_HINT = 'Автоподсчёт по профилю Lichess · Время вашего профиля';
+const PROFILE_NEEDED = 'Укажите свой логин Lichess на основном экране';
+const SUITE_LOGIN = 'sebajun777';
+const OTHER_LOGIN = 'Magnus_Fan';
+const OTHER_ZONE = 'America/New_York';
 const STALE = 'данные могли устареть';
 const CONNECT = 'Подключить Lichess';
 const REFRESH = 'Обновить с Lichess';
@@ -40,6 +44,7 @@ const SCENARIOS = [
   { name: 'backup', network: true, run: backup, title: 'экспорт и восстановление копии после автозачёта' },
   { name: 'network', network: true, run: networkLoss, title: 'обрыв сети и пометка «данные могли устареть»' },
   { name: 'keys', network: false, run: keys, title: 'порядок Tab и Enter в popup' },
+  { name: 'profile', network: false, firstRun: false, run: profile, title: 'первый запуск без профиля, форма профиля, смена профиля и удаление данных' },
   { name: 'dashboard', network: true, run: dashboardFirst, title: 'показание, снятое основным экраном без popup' },
   // Not part of the usual run: it only starts when named in --only, and only near midnight in Bishkek.
   { name: 'midnight', network: true, explicit: true, run: midnight, title: 'смена суток при открытом popup, только явно: --only=midnight' },
@@ -51,12 +56,12 @@ const HELP = `Проверка расширения в настоящем Firefo
 Через npm: npm run smoke:firefox -- --only=basic,keys
 
 Нужны Firefox ${MIN_FIREFOX}+ в PATH и пакет dist/lichess-training-<версия>.zip (npm run smoke:firefox собирает его сам).
-Каждый сценарий идёт в свежем временном профиле; профиль Firefox пользователя не затрагивается.
+Каждый сценарий идёт в свежем временном профиле и, кроме profile, начинается с формы профиля Lichess (логин sebajun777, Asia/Bishkek); профиль Firefox пользователя не затрагивается.
 Профиль удаляется, скриншоты, загрузки и report.json остаются во временном каталоге, путь печатается в конце.
 
 Параметры:
   --only=имена   запустить только перечисленные сценарии (через запятую)
-  --no-network   пропустить сценарии, которые ходят в Lichess (все, кроме basic и keys)
+  --no-network   пропустить сценарии, которые ходят в Lichess (все, кроме basic, keys и profile)
   --help         показать эту справку
 
 Сценарии:
@@ -281,6 +286,39 @@ const readDashboard = () => {
   };
 };
 
+// The first-run form on the main screen and which of the journal blocks are really shown next to it.
+const readSetup = () => {
+  const byId = id => document.getElementById(id);
+  const shown = id => Boolean(byId(id)?.checkVisibility());
+  const text = id => byId(id)?.textContent.replace(/\s+/g, ' ').trim() ?? null;
+  return {
+    form: shown('profile-setup'), heading: text('profile-setup-heading'), username: byId('profile-username')?.value ?? null,
+    zone: byId('profile-time-zone')?.value ?? null, error: shown('profile-error') ? text('profile-error') : null,
+    labels: [...document.querySelectorAll('#profile-setup label')].map(label => label.textContent.trim()),
+    program: shown('program-card'), today: shown('today-card'), sync: shown('sync-card'), history: shown('history-card'), backup: shown('export'),
+    refresh: shown('refresh'), title: document.title,
+  };
+};
+
+// The "Профиль" section of the main screen.
+const readProfileSection = () => {
+  const byId = id => document.getElementById(id);
+  const fold = document.querySelector('.profile-change');
+  return {
+    summary: byId('profile-summary')?.textContent.replace(/\s+/g, ' ').trim() ?? null, username: byId('username')?.textContent.trim() ?? null,
+    title: document.title, open: fold?.open ?? null, warning: fold?.querySelector('.message')?.textContent.replace(/\s+/g, ' ').trim() ?? null,
+    error: byId('profile-reset-error')?.hidden === false ? byId('profile-reset-error').textContent.trim() : null,
+    status: byId('today-status')?.textContent.replace(/\s+/g, ' ').trim() ?? null,
+  };
+};
+
+// What the popup shows when there is no profile yet.
+const readNeeded = () => {
+  const visible = id => Boolean(document.getElementById(id)?.checkVisibility());
+  return { text: document.getElementById('profile-needed')?.textContent.trim() ?? null, shown: visible('profile-needed'),
+    today: visible('today-card'), program: visible('program-card'), open: visible('open-dashboard') };
+};
+
 const readFocus = () => {
   const node = document.activeElement;
   return { tag: node.tagName.toLowerCase(), id: node.id, text: (node.getAttribute('aria-label') || node.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40) };
@@ -427,6 +465,27 @@ class Session {
 
   async click(id) { await this.m.run(clickById, id); }
 
+  // Types the login and picks the zone in the first-run form, then presses «Начать».
+  async fillProfile(username, zone) {
+    await this.m.run(() => { document.getElementById('profile-username').value = ''; });
+    if (username) await this.m.sendKeys('#profile-username', username);
+    await this.m.run(value => { document.getElementById('profile-time-zone').value = value; }, zone);
+    await this.m.click('#profile-setup-form button[type="submit"]');
+  }
+
+  // The step that opens every scenario: a fresh Firefox profile has no journal profile, so the main screen asks for it.
+  async firstRun() {
+    await this.m.navigate(`${this.base}/dashboard.html`);
+    const form = await until(() => this.m.run(readSetup), state => state.form, 20_000);
+    current.states['first-run'] = form;
+    check('первый запуск: видна только форма «Ваш профиль Lichess»',
+      form.form && form.heading === 'Ваш профиль Lichess' && !form.program && !form.today && !form.sync && !form.history && !form.backup && !form.refresh,
+      show(form));
+    await this.fillProfile(SUITE_LOGIN, TIME_ZONE);
+    const board = await this.watchDashboard();
+    check('первый запуск: после «Начать» страница перезагрузилась и показывает журнал', board.tasks.length > 0, show(board.tasks));
+  }
+
   async grant() {
     const granted = await this.m.chrome(permissionsOf, this.addonId, ORIGIN);
     if (!granted.origins.includes(ORIGIN) || !granted.data_collection.includes('authenticationInfo')) {
@@ -494,6 +553,69 @@ async function basic(s) {
   await s.shot('dashboard-blitz');
   check('клик по Blitz: aria-pressed="true" только у Blitz', chosen.pressed.join() === 'false,true,false,false', show(chosen.pressed));
   check('клик по Blitz: график перерисован для Blitz', /Blitz/.test(chosen.chart ?? '') && !/Bullet/.test(chosen.chart ?? ''), show(chosen.chart));
+}
+
+async function profile(s) {
+  await s.m.navigate(`${s.base}/popup.html`);
+  const needed = await until(() => s.m.run(readNeeded), state => state.shown, 15_000);
+  await s.shot('popup-no-profile');
+  check('popup без профиля: подсказка «Укажите свой логин Lichess на основном экране»', needed.shown && needed.text === PROFILE_NEEDED, show(needed));
+  check('popup без профиля: карточек нет, кнопка основного экрана есть', !needed.today && !needed.program && needed.open, show(needed));
+
+  await s.m.navigate(`${s.base}/dashboard.html`);
+  const form = await until(() => s.m.run(readSetup), state => state.form, 20_000);
+  await s.shot('dashboard-form');
+  check('форма: поля «Логин на Lichess» и «Часовой пояс»', form.labels.join() === 'Логин на Lichess,Часовой пояс', show(form.labels));
+  check('форма: по умолчанию выбран часовой пояс системы', Boolean(form.zone) && form.zone === Intl.DateTimeFormat().resolvedOptions().timeZone, show(form.zone));
+  await s.fillProfile('-x', OTHER_ZONE);
+  const refused = await until(() => s.m.run(readSetup), state => state.error !== null, 10_000);
+  check('неверный логин «-x»: под формой ошибка про формат логина', /Логин Lichess: 2–30 символов/.test(refused.error ?? '') && refused.form, show(refused.error));
+  await s.shot('dashboard-form-error');
+
+  await s.fillProfile(OTHER_LOGIN, OTHER_ZONE);
+  const board = await s.watchDashboard();
+  const section = await s.m.run(readProfileSection);
+  current.states.section = section;
+  check('после «Начать» с «Magnus_Fan»: раздел «Профиль» показывает логин в нижнем регистре', section.summary?.includes('Логин: magnus_fan'), show(section.summary));
+  check('раздел «Профиль»: показан часовой пояс America/New_York и его метка', /Часовой пояс: America\/New_York \(GMT-[45]\)/.test(section.summary ?? ''), show(section.summary));
+  check('шапка и заголовок страницы: логин профиля', section.username === 'magnus_fan' && section.title === 'Шахматный журнал · magnus_fan', `${show(section.username)}, ${show(section.title)}`);
+  check('основной экран с новым профилем без ошибок', board.error === null, show(board.error));
+
+  await s.click('completion');
+  await s.watchDashboard(state => state.status === MANUAL);
+  await s.m.click('.profile-change > summary');
+  const open = await s.m.run(readProfileSection);
+  check('«Сменить профиль»: раскрылось предупреждение об удалении данных', open.open === true && /удалит все локальные данные/.test(open.warning ?? ''), show(open.warning));
+  await s.m.sendKeys('#profile-reset-word', 'неверно');
+  await s.click('profile-reset');
+  const wrong = await until(() => s.m.run(readProfileSection), state => state.error !== null, 5_000);
+  await s.shot('dashboard-profile-section');
+  check('неверное слово: ошибка под полем, профиль на месте', /слово «удалить»/.test(wrong.error ?? '') && wrong.summary?.includes('magnus_fan'), show(wrong));
+  await s.m.navigate(`${s.base}/dashboard.html`);
+  const kept = await s.watchDashboard(state => state.status === MANUAL);
+  check('неверное слово: данные не удалены (отметка дня осталась)', kept.status === MANUAL, show(kept.status));
+
+  await s.m.click('.profile-change > summary');
+  await s.m.sendKeys('#profile-reset-word', ' Удалить ');
+  await s.click('profile-reset');
+  const reset = await until(() => s.m.run(readSetup), state => state.form && state.username === '', 20_000);
+  check('слово «удалить»: страница перезагрузилась и снова видна только форма', reset.form && !reset.program && !reset.sync && !reset.backup, show(reset));
+  await s.m.navigate(`${s.base}/popup.html`);
+  const after = await until(() => s.m.run(readNeeded), state => state.shown, 15_000);
+  check('после сброса popup снова просит указать логин', after.text === PROFILE_NEEDED && !after.today, show(after));
+
+  await narrow(s);
+}
+
+// The first-run form in a narrow window, as a screenshot only.
+async function narrow(s) {
+  try {
+    await s.m.command('WebDriver:SetWindowRect', { width: 420, height: 900 });
+    await s.m.navigate(`${s.base}/dashboard.html`);
+    await until(() => s.m.run(readSetup), state => state.form, 15_000);
+    await s.shot('dashboard-form-420');
+    await s.m.command('WebDriver:SetWindowRect', { width: 1280, height: 900 });
+  } catch { /* a screenshot is not a check */ }
 }
 
 async function dialog(s) {
@@ -866,7 +988,9 @@ async function runScenario(scenario, { dir, zip }) {
     report.browser = `${capabilities.browserName} ${capabilities.browserVersion}`;
     const { value: addonId } = await m.command('Addon:Install', { path: zip, temporary: true });
     const host = await m.chrome(hostOf, addonId);
-    await scenario.run(new Session(m, { name, addonId, base: `moz-extension://${host}/ui`, downloads, screenshots }));
+    const session = new Session(m, { name, addonId, base: `moz-extension://${host}/ui`, downloads, screenshots });
+    if (scenario.firstRun !== false) await session.firstRun();
+    await scenario.run(session);
   } catch (error) {
     current.error = error.stack;
     check('сценарий выполнен без исключений', false, error.message);
