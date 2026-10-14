@@ -1,3 +1,4 @@
+import { profileGeneration, requireSameProfile } from '../core/profile.js';
 import { getSyncState, parseLivePage, advanceSyncState, buildSyncSnapshot } from '../core/sync-state.js';
 
 const PAGE_SIZE = 200;
@@ -17,6 +18,8 @@ export function createSyncService({ repository, lichess, canAccess = async () =>
   }
 
   async function nextBatch() {
+    // The reply of Lichess belongs to the profile it was asked for; nothing is written once the profile has changed.
+    const generation = profileGeneration();
     const instant = readClock();
     const history = await repository.readSyncHistory();
     const state = getSyncState(history, instant);
@@ -31,6 +34,7 @@ export function createSyncService({ repository, lichess, canAccess = async () =>
     try {
       page = await lichess.fetchGamesPage({ since, until, max: PAGE_SIZE });
     } catch (error) {
+      requireSameProfile(generation);
       if (Number.isSafeInteger(error?.retryAt) && error.retryAt > instant.getTime()) {
         const paused = { ...state, revision: state.revision + 1, retryAfter: error.retryAt };
         getSyncState({ ...history, sync: paused }, instant);
@@ -38,9 +42,11 @@ export function createSyncService({ repository, lichess, canAccess = async () =>
       }
       throw error;
     }
+    requireSameProfile(generation);
     const parsed = parseLivePage(page, { since, until, max: PAGE_SIZE });
     const next = advanceSyncState(state, { since, until, rows: page.rows,
       lastCreatedAt: parsed.lastCreatedAt, max: PAGE_SIZE }, instant);
+    requireSameProfile(generation);
     const saved = await repository.saveSyncBatch({ games: parsed.games, sync: next, expectedRevision: state.revision });
     const result = await snapshot(instant);
     return { snapshot: result, report: { rows: page.rows, eligible: parsed.games.length, skipped: parsed.skipped,

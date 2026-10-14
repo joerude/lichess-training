@@ -93,9 +93,10 @@ export function createPracticeService({ repository, now = () => new Date() }) {
   }
 
   // Saves a counter reading (null keeps the stored one) and marks the day once the target is reached.
-  async function recordPuzzleCount(instant, count) {
+  async function recordPuzzleCount(instant, count, guard = () => {}) {
     let autoCompleted = false;
     const records = await update(instant, (current, today) => {
+      guard();
       const puzzles = count === null ? current.puzzles : observePuzzleCount(current.puzzles, count, instant, today);
       const journal = applyAutoCompletion(current.journal, today, solvedToday(puzzles, today), instant);
       autoCompleted = journal !== current.journal;

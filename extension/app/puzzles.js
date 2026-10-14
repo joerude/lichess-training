@@ -1,4 +1,5 @@
 import { trainingDay, snapshotFrom } from '../core/training-engine.js';
+import { profileGeneration, requireSameProfile } from '../core/profile.js';
 import { shouldFetchPuzzles, solvedToday } from '../core/puzzle-progress.js';
 
 function failureStatus(error) {
@@ -16,6 +17,7 @@ export function createPuzzleService({ repository, practice, lichess, canAccess =
   }
 
   async function refresh() {
+    const generation = profileGeneration();
     const checkedAt = readClock();
     const stored = await repository.readPuzzleReading();
     let status = 'ok';
@@ -32,7 +34,7 @@ export function createPuzzleService({ repository, practice, lichess, canAccess =
     // Record with the time after the request, so a reading taken after midnight starts the new day.
     const instant = readClock();
     const today = trainingDay(instant);
-    const { records, autoCompleted } = await practice.recordPuzzleCount(instant, count);
+    const { records, autoCompleted } = await practice.recordPuzzleCount(instant, count, () => requireSameProfile(generation));
     const day = snapshotFrom(records.journal, today).today;
     const solved = solvedToday(records.puzzles, today);
     return { status, reason, date: today, solved, target: day.target, completed: day.completed, source: day.source,

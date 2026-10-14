@@ -44,7 +44,7 @@ function fixture(t, { now = '2026-10-13T03:30:00Z' } = {}) {
   };
   const create = () => createServices({ repository, now: () => new Date(now), lichess, canAccess: async () => true });
   // restart() is a background that was unloaded and woke up again: the same storage, no profile in memory.
-  return { repository, requests, services: create(), restart() { clearActiveProfile(); return create(); } };
+  return { repository, requests, lichess, services: create(), restart() { clearActiveProfile(); return create(); } };
 }
 
 function deferred() {
@@ -346,4 +346,38 @@ test('an unknown profile command is refused', async t => {
   const f = fixture(t);
   await assert.rejects(f.services.handle({ type: 'profile.unknown' }), { message: 'Неизвестная команда профиля.' });
   assert.equal(hasActiveProfile(), false);
+});
+
+const CHANGED = 'Профиль изменился во время загрузки. Повторите действие.';
+
+// Starts `command` for alice_a, holds the Lichess reply, swaps the profile for bob_b and only then lets the reply through.
+async function replyAfterProfileChange(t, command, reply) {
+  const f = fixture(t);
+  const gate = deferred();
+  f.lichess.fetchPuzzleCount = async () => { await gate.promise; return 5000; };
+  f.lichess.fetchGamesPage = async () => { await gate.promise; return reply; };
+  await f.services.handle({ type: 'profile.setup', username: 'alice_a', timeZone: 'Asia/Bishkek' });
+  const pending = f.services.handle(command);
+  const outcome = pending.then(() => null, error => error);
+  await settle();
+  await f.services.handle({ type: 'profile.reset', confirm: 'удалить' });
+  await f.services.handle({ type: 'profile.setup', username: 'bob_b', timeZone: 'Asia/Bishkek' });
+  gate.resolve();
+  return { f, error: await outcome };
+}
+
+test('a puzzle reading requested for the old profile is not written into the new one', async t => {
+  const { f, error } = await replyAfterProfileChange(t, { type: 'puzzles.refresh' }, null);
+  assert.equal(error?.message, CHANGED);
+  const { practice, journal } = await storesOf(f.repository);
+  assert.equal(practice.puzzles, null);
+  assert.equal(journal.profile.username, 'bob_b');
+});
+
+test('a games page requested for the old profile is not written into the new one', async t => {
+  const { f, error } = await replyAfterProfileChange(t, { type: 'sync.nextBatch' }, { records: [], rows: 0 });
+  assert.equal(error?.message, CHANGED);
+  const { history } = await storesOf(f.repository);
+  assert.equal(history.sync, null);
+  assert.equal(history.meta, null);
 });

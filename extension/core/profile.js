@@ -5,6 +5,8 @@ const HOUR = 3600000;
 
 // Background-side state: the profile that every command works for.
 let active = null;
+// Grows with every change of the profile, so a command can tell that the profile changed while it waited.
+let generation = 0;
 
 // Returns the canonical spelling ('asia/bishkek' becomes 'Asia/Bishkek'), so what is stored and compared later agrees.
 function requireTimeZone(timeZone) {
@@ -25,11 +27,22 @@ export function normalizeProfile(input) {
 
 export function setActiveProfile(profile) {
   active = normalizeProfile(profile);
+  generation += 1;
   return { ...active };
 }
 
 export function clearActiveProfile() {
   active = null;
+  generation += 1;
+}
+
+export function profileGeneration() {
+  return generation;
+}
+
+// Throws when the profile is no longer the one `expected` (a profileGeneration() taken earlier) was read for.
+export function requireSameProfile(expected) {
+  if (generation !== expected) throw new Error('Профиль изменился во время загрузки. Повторите действие.');
 }
 
 export function hasActiveProfile() {
