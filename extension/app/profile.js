@@ -45,9 +45,16 @@ export function createProfileService({ repository, now = () => new Date() }) {
 
   async function reset(command) {
     if (command.confirm !== RESET_WORD) throw new Error(`Для удаления данных введите слово «${RESET_WORD}».`);
-    // The profile is forgotten only once the data is really gone.
-    await repository.clearAll();
+    // Forgetting the profile first moves its generation on, so a reply still on its way is never written into the
+    // emptied store; if clearing fails, the data is still there and so is its profile.
+    const previous = hasActiveProfile() ? activeProfile() : null;
     clearActiveProfile();
+    try {
+      await repository.clearAll();
+    } catch (error) {
+      if (previous) setActiveProfile(previous);
+      throw error;
+    }
     return { profile: null };
   }
 
