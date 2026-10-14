@@ -15,9 +15,15 @@
 
 Нужен Firefox для компьютера, версия 140 или новее.
 
-### Постоянно (подписанный пакет)
+### Из релиза (проще всего)
 
-Обычный Firefox ставит насовсем только расширения, подписанные Mozilla. Подписать свою копию можно бесплатно и без публикации в каталоге:
+1. Скачайте `lichess-training-<версия>.xpi` со страницы [Releases](https://github.com/joerude/lichess-training/releases/latest) — файл подписан Mozilla.
+2. Откройте его в Firefox (перетащите в окно или `about:addons` → ⚙ → «Установить дополнение из файла») и нажмите «Добавить».
+
+### Своя подписанная сборка
+
+
+Обычный Firefox ставит насовсем только расширения, подписанные Mozilla. Если вы меняете код, подпишите свою копию — бесплатно и без публикации в каталоге (для своей подписи замените `browser_specific_settings.gecko.id` в `extension/manifest.json` на свой):
 
 1. Войдите на [addons.mozilla.org](https://addons.mozilla.org/developers/addon/api/key/) и создайте API-ключи (JWT issuer и JWT secret).
 2. В корне проекта выполните (нужны Node 22+ и `npm ci`):
