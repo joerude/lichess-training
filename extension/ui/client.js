@@ -1,4 +1,6 @@
-export function createClient(runtime = browser.runtime) {
+// onProfileRequired runs once when the background reports that the profile is gone (for example, deleted in another tab).
+export function createClient(runtime = browser.runtime, { onProfileRequired } = {}) {
+  let notified = false;
   return {
     async request(command) {
       const result = await runtime.sendMessage(command);
@@ -6,6 +8,10 @@ export function createClient(runtime = browser.runtime) {
       if (result?.ok === false && typeof result.error === 'string') {
         const error = new Error(result.error);
         if (typeof result.code === 'string') error.code = result.code;
+        if (error.code === 'profile-required' && !notified && onProfileRequired) {
+          notified = true;
+          onProfileRequired();
+        }
         throw error;
       }
       throw new Error('Расширение не ответило. Откройте журнал заново и повторите попытку.');

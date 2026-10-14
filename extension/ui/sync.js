@@ -1,5 +1,5 @@
 import { nextDayDelay } from './client.js';
-import { currentTimeZone, formatDateTime, formatDayNumeric, zoneLabel } from './time-zone.js';
+import { currentTimeZone, formatDateTime, formatDayNumeric, zoneLabelAt } from './time-zone.js';
 
 export function createSyncController({ client, render, setBusy, showError, showSuccess, onHistoryChanged }) {
   let tail = Promise.resolve();
@@ -114,7 +114,7 @@ export function mountSync({ client, profile, setExternalBusy, onHistoryChanged, 
     stopButton.disabled = !loading;
     retryBox.hidden = remaining <= 0;
     if (remaining > 0) {
-      retryBox.textContent = `Lichess попросил подождать. Следующая загрузка доступна с ${formatTime(snapshot.sync.retryAfter)} (${zoneLabel()}).`;
+      retryBox.textContent = `Lichess попросил подождать. Следующая загрузка доступна с ${formatTime(snapshot.sync.retryAfter)} (${zoneLabelAt(snapshot.sync.retryAfter)}).`;
       if (active) cooldownTimer = setTimer(updateControls, Math.min(remaining, 2147483647));
     }
   }
@@ -127,13 +127,13 @@ export function mountSync({ client, profile, setExternalBusy, onHistoryChanged, 
       element(`sync-${speed}`).textContent = String(value.today.groups.find((group) => group.speed === speed)?.games || 0);
     }
     element('sync-total').textContent = `Всего в загруженной истории: ${value.overview.totalGames} партий.`;
-    element('sync-coverage').textContent = `${formatTime(value.sync.coverageStart)} (${zoneLabel()}), включительно`;
+    element('sync-coverage').textContent = `${formatTime(value.sync.coverageStart)} (${zoneLabelAt(value.sync.coverageStart)}), включительно`;
     element('sync-completed').textContent = value.sync.completedUntil === null
       ? 'Ни один период ещё не загружен полностью'
-      : `${formatTime(value.sync.completedUntil)} (${zoneLabel()}), не включая этот момент`;
+      : `${formatTime(value.sync.completedUntil)} (${zoneLabelAt(value.sync.completedUntil)}), не включая этот момент`;
     element('sync-last-success').textContent = value.sync.lastSuccessAt === null
       ? 'Завершённых загрузок периода ещё нет'
-      : `${formatTime(value.sync.lastSuccessAt)} (${zoneLabel()})`;
+      : `${formatTime(value.sync.lastSuccessAt)} (${zoneLabelAt(value.sync.lastSuccessAt)})`;
     element('sync-state').textContent = value.sync.cycleUntil !== null
       ? 'Загрузка периода не завершена. Показаны уже сохранённые партии; остальные ещё могут отсутствовать.'
       : value.sync.completedUntil !== null

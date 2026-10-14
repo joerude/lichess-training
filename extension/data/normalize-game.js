@@ -1,7 +1,7 @@
 const SPEEDS = new Set(['bullet', 'blitz', 'rapid']);
 const FINISHED = new Set(['mate', 'resign', 'stalemate', 'timeout', 'draw', 'outoftime', 'cheat', 'variantEnd', 'unknownFinish']);
 const ANALYSIS_FIELDS = ['acpl', 'inaccuracy', 'mistake', 'blunder'];
-// Bishkek is UTC+06 at this boundary; later instants produce five-digit date keys.
+// The last instant whose calendar date in the +06:00 zone still has a four-digit year; later instants produce five-digit date keys.
 const MAX_TIMESTAMP = Date.parse('9999-12-31T23:59:59.999+06:00');
 
 function object(value, field) {

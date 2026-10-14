@@ -136,4 +136,8 @@ function mountJournal(profile) {
   });
 }
 
-void startWithProfile({ client: createClient(), container: document.getElementById('profile-setup'), mount: mountJournal });
+const client = createClient();
+void startWithProfile({ client, container: document.getElementById('profile-setup'), mount: mountJournal, onDamaged() {
+  document.querySelector('.dashboard-shell').classList.add('profile-damaged');
+  mountProfileSection({ client, profile: null });
+} });

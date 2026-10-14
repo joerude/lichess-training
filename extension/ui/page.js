@@ -37,7 +37,8 @@ export function createPageFeedback({ errorBox, notice }) {
 }
 
 export function mountTrainingPage(renderExtra = () => {}) {
-  const client = createClient();
+  // The page is only mounted while a profile is set; if it vanishes (reset in another tab) the reload shows the form.
+  const client = createClient(browser.runtime, { onProfileRequired: () => location.reload() });
   const completion = document.getElementById('completion');
   const refresh = document.getElementById('refresh');
   const errorBox = document.getElementById('error');
@@ -56,7 +57,7 @@ export function mountTrainingPage(renderExtra = () => {}) {
     if (locked && document.activeElement === completion) completionHadFocus = true;
     completion.disabled = locked;
     refresh.disabled = busy || externalBusy;
-    for (const button of document.querySelectorAll('[data-write-control]')) button.disabled = busy || externalBusy || !snapshot;
+    for (const button of document.querySelectorAll('[data-write-control]')) button.disabled = busy || externalBusy || (!snapshot && !button.hasAttribute('data-recovery-control'));
     card.setAttribute('aria-busy', String(busy));
     if (!locked && completionHadFocus) {
       completionHadFocus = false;

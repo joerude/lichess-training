@@ -303,7 +303,8 @@ input::file-selector-button { margin-right: 10px; padding: 4px 10px; border: 1.5
 
 /* First run: only the profile form (main screen) or the hint (popup) is shown until a profile exists. */
 .awaiting-profile #refresh, .awaiting-profile #program-card, .awaiting-profile #today-card { display: none; }
-.dashboard-shell.awaiting-profile main > :not(#profile-setup) { display: none; }
+.dashboard-shell.awaiting-profile main > :not(#profile-setup):not(.profile-card) { display: none; }
+.dashboard-shell.awaiting-profile:not(.profile-damaged) main > .profile-card { display: none; }
 .profile-setup { max-width: 520px; width: 100%; margin: 24px auto; }
 .profile-form { display: grid; gap: 6px; margin-top: 10px; }
 .profile-form label, .profile-reset-field label { display: block; margin: 8px 0 4px; font-size: 12px; font-weight: 700; }

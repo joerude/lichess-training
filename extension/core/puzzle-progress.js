@@ -17,7 +17,7 @@ export function shouldFetchPuzzles(record, instant, today) {
   return elapsed < 0 || elapsed >= PUZZLE_REFRESH_MS;
 }
 
-// The first reading of a Bishkek day becomes its baseline; a lower counter restarts the count.
+// The first reading of a training day becomes its baseline; a lower counter restarts the count.
 export function observePuzzleCount(record, count, instant, today) {
   if (!Number.isSafeInteger(count) || count < 0) throw new Error('Некорректный счётчик задач Lichess.');
   const at = instant.toISOString();

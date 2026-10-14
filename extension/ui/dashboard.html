@@ -126,7 +126,7 @@
           <p class="message message-error">Смена профиля удалит все локальные данные: отметки, программу, разборы, награды, партии и рейтинги. Сначала нажмите «Скачать JSON» в разделе выше, если хотите их сохранить.</p>
           <div class="profile-reset-field"><label for="profile-reset-word">Введите слово «удалить»</label><input id="profile-reset-word" type="text" autocomplete="off" spellcheck="false" aria-describedby="profile-reset-error"></div>
           <p id="profile-reset-error" class="message message-error" role="alert" hidden></p>
-          <div class="form-actions"><button id="profile-reset" class="button button-secondary" type="button">Удалить данные и сменить профиль</button></div>
+          <div class="form-actions"><button id="profile-reset" class="button button-secondary" type="button" data-write-control data-recovery-control>Удалить данные и сменить профиль</button></div>
         </details>
       </section>
     </main>

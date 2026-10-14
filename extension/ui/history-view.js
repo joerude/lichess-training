@@ -1,4 +1,4 @@
-import { formatShortDate, zoneLabel } from './time-zone.js';
+import { formatShortDate, zoneLabelAt } from './time-zone.js';
 
 const integer = new Intl.NumberFormat('ru-RU');
 const decimal = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
@@ -30,11 +30,18 @@ export function renderHistoryPreview(container, preview) {
     node(document, 'p', 'Сохранение добавит только отсутствующие партии. Исторический анализ не создаёт отметки тренировок.', 'caption'));
 }
 
+// The offset can differ between the first and the last game when daylight saving time sits between them.
+function periodZone(first, last) {
+  const from = zoneLabelAt(first);
+  const to = zoneLabelAt(last);
+  return from === to ? from : `${from} → ${to}`;
+}
+
 export function renderHistoryOverview(panel, overview) {
   const document = panel.ownerDocument;
   const find = (id) => panel.querySelector(`#${id}`);
   find('history-period').textContent = overview.totalGames
-    ? `${integer.format(overview.totalGames)} партий · ${period(overview.firstGameAt, overview.lastGameAt)} (${zoneLabel()})`
+    ? `${integer.format(overview.totalGames)} партий · ${period(overview.firstGameAt, overview.lastGameAt)} (${periodZone(overview.firstGameAt, overview.lastGameAt)})`
     : 'История партий пока пуста. Выберите исходные файлы ниже и проверьте их перед сохранением.';
   const metadata = find('history-metadata');
   metadata.hidden = !overview.importedAt;

@@ -14,6 +14,7 @@ function makeNode(tag = 'div') {
     append(...items) { this.children.push(...items); },
     replaceChildren(...items) { this.children = items; },
     setAttribute(key, value) { attributes[key] = value; },
+    removeAttribute(key) { delete attributes[key]; },
     addEventListener(type, handler) { handlers.set(type, handler); },
     dispatch(type) { return handlers.get(type)?.({ preventDefault() { this.prevented = true; } }); },
   };
@@ -161,4 +162,34 @@ test('the main screen and popup hold the profile markup and no login of the firs
   assert.match(dashboard, /<title>Шахматный журнал<\/title>/);
   assert.match(popup, /Укажите свой логин Lichess на основном экране/);
   for (const text of [dashboard, popup, manifest]) assert.doesNotMatch(text, /sebajun777|Бишкек/);
+});
+
+test('the first-run form puts the cursor in the login field', () => {
+  const form = mountProfileSetup({ client: client(async () => ({})), container: makeNode('section'), document: fakeDocument(), zones: ['UTC'], system: 'UTC' });
+  assert.equal(form.username.autofocus, true);
+});
+
+test('a refused setup marks the login field invalid and points it at the error until the next input', async () => {
+  const fake = client(async () => { throw new Error('Логин Lichess: 2–30 символов, латинские буквы, цифры, «_» и «-».'); });
+  const form = mountProfileSetup({ client: fake, container: makeNode('section'), document: fakeDocument(), location: reloads().location, zones: ['UTC'], system: 'UTC' });
+  const hintId = form.username.attributes['aria-describedby'];
+  await form.form.dispatch('submit');
+  assert.equal(form.username.attributes['aria-invalid'], 'true');
+  assert.ok(form.username.attributes['aria-describedby'].split(' ').includes(form.error.id));
+  form.username.dispatch('input');
+  assert.equal(form.username.attributes['aria-invalid'], undefined);
+  assert.equal(form.username.attributes['aria-describedby'], hintId);
+});
+
+test('the reset button is locked together with the other write controls', async () => {
+  const dashboard = await readFile(new URL('../extension/ui/dashboard.html', import.meta.url), 'utf8');
+  assert.match(dashboard, /<button id="profile-reset"[^>]*data-write-control/);
+});
+
+test('a damaged journal on the main screen offers the data reset', async () => {
+  const container = makeNode('section');
+  const damaged = [];
+  await startWithProfile({ client: client(async () => { throw new Error('Профиль повреждён'); }), container, document: fakeDocument(), onDamaged: () => damaged.push(1) });
+  assert.deepEqual(damaged, [1]);
+  assert.match(allText(container), /Профиль повреждён/);
 });

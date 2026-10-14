@@ -111,3 +111,15 @@ test('a refresh requested while an old read is pending gets a fresh snapshot aft
   await afterWake;
   assert.equal(rendered.at(-1).today.date, '2026-10-05');
 });
+
+test('a profile-required reply calls the hook once, however many replies follow', async () => {
+  const calls = [];
+  const client = createClient({ sendMessage: async () => ({ ok: false, error: 'Сначала укажите свой логин Lichess.', code: 'profile-required' }) },
+    { onProfileRequired: () => calls.push(1) });
+  await assert.rejects(client.request({}), /логин/);
+  await assert.rejects(client.request({}), /логин/);
+  assert.equal(calls.length, 1);
+  const quiet = createClient({ sendMessage: async () => ({ ok: false, error: 'Disk full' }) }, { onProfileRequired: () => calls.push(2) });
+  await assert.rejects(quiet.request({}), /Disk full/);
+  assert.deepEqual(calls, [1]);
+});

@@ -44,6 +44,7 @@ async function start() {
     const box = document.getElementById('error');
     box.textContent = error.message || 'Не удалось открыть журнал.';
     box.hidden = false;
+    return;
   }
   if (profile === null) {
     document.getElementById('profile-needed').hidden = false;

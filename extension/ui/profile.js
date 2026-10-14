@@ -53,9 +53,15 @@ export function mountProfileSetup({ client, container, document = globalThis.doc
   username.autocomplete = 'off';
   username.spellcheck = false;
   username.placeholder = 'например, magnus_fan';
+  username.autofocus = true;
   const usernameHint = node(document, 'p', 'Латинские буквы, цифры, «_» и «-», от 2 до 30 символов. Регистр не важен.', 'caption');
   usernameHint.id = 'profile-username-hint';
   username.setAttribute('aria-describedby', usernameHint.id);
+  const clearInvalid = () => {
+    username.removeAttribute('aria-invalid');
+    username.setAttribute('aria-describedby', usernameHint.id);
+  };
+  username.addEventListener('input', clearInvalid);
 
   const timeZone = node(document, 'select');
   timeZone.name = 'timeZone';
@@ -83,18 +89,22 @@ export function mountProfileSetup({ client, container, document = globalThis.doc
     field(document, 'profile-time-zone', 'Часовой пояс', timeZone), zoneHint, error, actions);
   container.append(top, form);
   container.hidden = false;
+  username.focus?.();
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (submit.disabled) return;
     submit.disabled = true;
     error.hidden = true;
+    clearInvalid();
     try {
       await client.request({ type: 'profile.setup', username: username.value.trim(), timeZone: timeZone.value });
       location.reload();
     } catch (failure) {
       error.textContent = failure.message || 'Не удалось сохранить профиль.';
       error.hidden = false;
+      username.setAttribute('aria-invalid', 'true');
+      username.setAttribute('aria-describedby', `${error.id} ${usernameHint.id}`);
       submit.disabled = false;
     }
   });
@@ -103,7 +113,7 @@ export function mountProfileSetup({ client, container, document = globalThis.doc
 
 // Only the setup form can work without a profile, so the other modules mount after this answers.
 // Returns the profile, or null when the form was shown instead.
-export async function startWithProfile({ client, container, document = globalThis.document, location = globalThis.location, mount }) {
+export async function startWithProfile({ client, container, document = globalThis.document, location = globalThis.location, mount, onDamaged }) {
   let profile;
   try {
     ({ profile } = await client.request({ type: 'profile.get' }));
@@ -113,6 +123,8 @@ export async function startWithProfile({ client, container, document = globalThi
     box.setAttribute('role', 'alert');
     container.replaceChildren(box);
     container.hidden = false;
+    // The journal cannot be read, so the only way on is to start over; the caller shows the reset section.
+    onDamaged?.();
     return null;
   }
   if (profile === null) {
@@ -134,7 +146,7 @@ export function mountProfileSection({ client, profile, document = globalThis.doc
   const word = element('profile-reset-word');
   const button = element('profile-reset');
   const error = element('profile-reset-error');
-  element('profile-summary').textContent = formatProfile(profile);
+  element('profile-summary').textContent = profile ? formatProfile(profile) : 'Профиль не удалось прочитать из журнала.';
   let running = false;
   button.addEventListener('click', async () => {
     if (running) return;
