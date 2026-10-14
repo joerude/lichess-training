@@ -182,8 +182,10 @@ test('a backup restores only into the profile that exported it', () => {
   const backup = withProfile(NEW_YORK, () => backupFrom(initialState(today), new Date('2026-10-12T12:00:00.000Z')));
   assert.deepEqual(withProfile(NEW_YORK, () => normalizeBackup(backup, today)).profile, NEW_YORK);
   for (const profile of [SUITE_PROFILE, { ...NEW_YORK, username: 'someone_else' }, { ...NEW_YORK, timeZone: 'Europe/London' }]) {
-    assert.throws(() => withProfile(profile, () => normalizeBackup(backup, today)), { message: PROFILE_MISMATCH });
+    assert.throws(() => withProfile(profile, () => normalizeBackup(backup, today)),
+      { message: `Копия для magnus_fan · America/New_York, а журнал — для ${profile.username} · ${profile.timeZone}. Укажите тот же профиль или смените его в разделе «Профиль».` });
   }
+  assert.throws(() => withProfile(NEW_YORK, () => normalizeBackup({ ...backup, state: { ...backup.state, program: { ...backup.state.program, id: 'other' } } }, today)), { message: PROFILE_MISMATCH });
 });
 
 test('backup completion times belong to the day of the profile time zone', () => {

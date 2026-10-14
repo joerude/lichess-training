@@ -381,3 +381,28 @@ test('a games page requested for the old profile is not written into the new one
   assert.equal(history.sync, null);
   assert.equal(history.meta, null);
 });
+
+const withBackupProfile = (backup, profile) => ({ ...backup, state: { ...backup.state, profile } });
+
+test('a backup written with another spelling of the same profile is accepted', async t => {
+  const f = fixture(t);
+  await f.services.handle({ type: 'profile.setup', username: 'SebaJun777', timeZone: 'asia/bishkek' });
+  const backup = withBackupProfile(await f.services.handle({ type: 'training.export' }), { username: 'SebaJun777', timeZone: 'asia/bishkek' });
+  const preview = await f.services.handle({ type: 'training.previewImport', backup });
+  assert.ok(preview);
+  const restored = await f.services.handle({ type: 'training.import', backup });
+  assert.equal(restored.profile.username, 'sebajun777');
+});
+
+test('a backup of another profile is refused naming both profiles and leaves the data intact', async t => {
+  const f = fixture(t);
+  await f.services.handle({ type: 'profile.setup', username: 'SebaJun777', timeZone: 'Asia/Bishkek' });
+  await f.services.handle({ type: 'training.setCompletion', day: '2026-10-13', completed: true });
+  const backup = withBackupProfile(await f.services.handle({ type: 'training.export' }), NEW_YORK);
+  const before = await storesOf(f.repository);
+  const message = 'Копия для magnus_fan · America/New_York, а журнал — для sebajun777 · Asia/Bishkek. Укажите тот же профиль или смените его в разделе «Профиль».';
+  for (const type of ['training.previewImport', 'training.import']) {
+    await assert.rejects(f.services.handle({ type, backup }), { message });
+  }
+  assert.deepEqual(await storesOf(f.repository), before);
+});

@@ -1,4 +1,4 @@
-import { activeProfile } from './profile.js';
+import { activeProfile, normalizeProfile } from './profile.js';
 
 const PROGRAM_ID = 'daily-puzzles';
 const PROGRAM_TITLE = 'Ежедневная тактика';
@@ -71,6 +71,8 @@ function dayFlags(entry, completedAt) {
   return flags;
 }
 
+const MISMATCH = 'Резервная копия принадлежит другому профилю, часовому поясу или программе.';
+
 export function normalizeBackup(backup, today) {
   let json;
   try { json = JSON.stringify(backup); } catch { throw new Error('Некорректная резервная копия.'); }
@@ -84,9 +86,12 @@ export function normalizeBackup(backup, today) {
   const profile = requireObject(state.profile);
   const program = requireObject(state.program);
   const active = activeProfile();
-  if (profile.username !== active.username || profile.timeZone !== active.timeZone || program.id !== PROGRAM_ID) {
-    throw new Error('Резервная копия принадлежит другому профилю, часовому поясу или программе.');
+  let saved;
+  try { saved = normalizeProfile(profile); } catch { throw new Error(MISMATCH); }
+  if (saved.username !== active.username || saved.timeZone !== active.timeZone) {
+    throw new Error(`Копия для ${saved.username} · ${saved.timeZone}, а журнал — для ${active.username} · ${active.timeZone}. Укажите тот же профиль или смените его в разделе «Профиль».`);
   }
+  if (program.id !== PROGRAM_ID) throw new Error(MISMATCH);
   if (!isCalendarDate(program.startedOn) || program.startedOn > today) throw new Error('Некорректная дата начала программы.');
   if (!Array.isArray(state.days) || state.days.length > 10000) throw new Error('Некорректный список дней (максимум 10 000).');
   const dates = new Set();
