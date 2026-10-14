@@ -48,3 +48,6 @@
 
 ## [2026-10-13] ingest | Оформление «Турнирный бланк»
 Новая страница `decision-scoresheet-style` по спецификации редизайна; `verification-status` — 380/380 тестов и 57 проверок smoke после редизайна. Источники: `docs/plans/2026-10-12-ui-scoresheet-design.md`, `docs/verification.md`.
+
+## [2026-10-14] ingest | Свой профиль Lichess (0.5.0)
+Новая страница `decision-configurable-profile`; строка 0.5.0 в `verification-status`. Источники: `docs/plans/2026-10-13-configurable-profile.md`, `docs/architecture.md`, `docs/verification.md`.

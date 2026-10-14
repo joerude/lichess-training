@@ -11,6 +11,7 @@
 - [[concept-message-passing-and-storage]] — Передача сообщений и хранение отметки.
 - [[data-storage-model]] — Модель данных и хранение.
 - [[day-auto-mark-and-suppression]] — Автоотметка дня (`source: 'auto'`) и запрет автоподсчёта после ручной отмены (0.4.1).
+- [[decision-configurable-profile]] — Свой профиль Lichess и часовой пояс, первый запуск, смена профиля (0.5.0).
 - [[decision-public-puzzle-counter]] — Решение: задачи считаются по публичному счётчику профиля (0.4.1).
 - [[decision-scoresheet-style]] — Оформление «Турнирный бланк»: палитра, шрифты PT, компактный интерфейс.
 - [[decisions-platform-and-storage]] — Решения Firefox, JS, IndexedDB, локальный профиль.

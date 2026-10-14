@@ -2,7 +2,7 @@
 title: Статус проверок
 type: source-summary
 sources: [docs/verification.md, docs/manual-qa.md, NOTES.md, docs/reviews/2026-10-10-stage4.md, docs/plans/2026-10-12-puzzle-progress.md]
-updated: 2026-10-12
+updated: 2026-10-14
 ---
 
 # Статус проверок
@@ -16,6 +16,7 @@ updated: 2026-10-12
 | 2 История | 0.2.0 | 146 тестов; ZIP 21 файл; 73 ссылки/импорта |
 | 3 Публичный API | 0.3.0 | 231/231 тестов (Node 22.22.3); `web-ext lint` 0/0/0; ZIP 25 файлов; 146 ссылок/импортов |
 | 4 Программа | 0.4.0 | 312/312 тестов (Node 22); `web-ext lint` 0/0/0; ZIP 34 файла по `docs/verification.md` (⚠ измерено 30, см. ниже), байты равны `extension/`; ревью [[review-stage4]] |
+| 5 Свой профиль | 0.5.0 | 495/495 тестов (Node 22); `web-ext lint` 0/0/0; smoke 85/85; ZIP 54 записи; подписан Mozilla (unlisted); [[decision-configurable-profile]] |
 | 4.1 Автоподсчёт задач | 0.4.1 | 380/380 тестов (Node 22); `web-ext lint` 0/0/0; ZIP 38 записей (33 файла и 5 каталогов); [[plan-0-4-1-puzzle-auto-count]] |
 
 - Датасет: 6 430 строк, 6 429 уникальных, 1 повтор, 474 точки рейтинга; повторный импорт — 0 новых; SHA-256 исходных файлов до/после совпали. Контроли: bullet 5 917, blitz 345, rapid 167; последние рейтинги 2 143 / 1 707 / 1 823; период до 15 марта 2026, Puzzles до 18 апреля 2025.
