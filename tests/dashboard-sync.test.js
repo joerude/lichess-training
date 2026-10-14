@@ -30,7 +30,7 @@ function dashboardDocument() {
   function makeNode() {
     const handlers = new Map();
     return { ownerDocument: document, textContent: '', hidden: false, disabled: false, value: 'Bullet', files: [], attributes: {}, children: [],
-      classList: { toggle() {} },
+      classList: { toggle() {}, remove() {} },
       setAttribute(key, value) { this.attributes[key] = value; },
       append(...children) { this.children.push(...children); },
       replaceChildren(...children) { this.children = children; },
@@ -63,6 +63,8 @@ test('dashboard history import immediately refreshes stored sync counts, total a
     Object.defineProperty(globalThis, key, { value, configurable: true, writable: true });
     context.after(() => original ? Object.defineProperty(globalThis, key, original) : Reflect.deleteProperty(globalThis, key));
   }
+  // An existing user: the journal already has its profile, so the dashboard opens instead of asking for one.
+  await services.handle({ type: 'profile.setup', username: 'sebajun777', timeZone: 'Asia/Bishkek' });
   await import('../extension/ui/dashboard.js');
   const element = (id) => dom.document.getElementById(id);
   await waitFor(() => element('sync-total').textContent.includes('0 партий') && !element('history-preview-button').disabled);

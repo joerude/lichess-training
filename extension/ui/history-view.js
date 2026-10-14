@@ -1,10 +1,11 @@
+import { formatShortDate, zoneLabel } from './time-zone.js';
+
 const integer = new Intl.NumberFormat('ru-RU');
 const decimal = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
-const dateFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Bishkek' });
 const dayFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const labels = { bullet: 'Bullet', blitz: 'Blitz', rapid: 'Rapid' };
 const svgNamespace = 'http://www.w3.org/2000/svg';
-function date(value) { return value == null ? '—' : dateFormatter.format(new Date(value)); }
+function date(value) { return value == null ? '—' : formatShortDate(value); }
 function day(value) { return dayFormatter.format(new Date(`${value}T00:00:00Z`)); }
 function period(first, last) { return first == null || last == null ? 'нет партий' : `${date(first)} — ${date(last)}`; }
 function node(document, name, text, className) {
@@ -33,7 +34,7 @@ export function renderHistoryOverview(panel, overview) {
   const document = panel.ownerDocument;
   const find = (id) => panel.querySelector(`#${id}`);
   find('history-period').textContent = overview.totalGames
-    ? `${integer.format(overview.totalGames)} партий · ${period(overview.firstGameAt, overview.lastGameAt)} (Бишкек)`
+    ? `${integer.format(overview.totalGames)} партий · ${period(overview.firstGameAt, overview.lastGameAt)} (${zoneLabel()})`
     : 'История партий пока пуста. Выберите исходные файлы ниже и проверьте их перед сохранением.';
   const metadata = find('history-metadata');
   metadata.hidden = !overview.importedAt;

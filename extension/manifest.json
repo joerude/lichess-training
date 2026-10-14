@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Шахматный журнал",
   "version": "0.4.1",
-  "description": "Личный журнал ежедневной шахматной практики для sebajun777.",
+  "description": "Журнал ежедневной шахматной практики на Lichess: партии, задачи, разборы и XP.",
   "browser_specific_settings": {
     "gecko": {
       "id": "lichess-training@local",

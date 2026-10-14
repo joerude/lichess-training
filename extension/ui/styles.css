@@ -300,3 +300,15 @@ input::file-selector-button { margin-right: 10px; padding: 4px 10px; border: 1.5
   .brand { gap: 6px; font-size: 14px; }
   .week-day time { font-size: 8px; letter-spacing: -.02em; white-space: nowrap; }
 }
+
+/* First run: only the profile form (main screen) or the hint (popup) is shown until a profile exists. */
+.awaiting-profile #refresh, .awaiting-profile #program-card, .awaiting-profile #today-card { display: none; }
+.dashboard-shell.awaiting-profile main > :not(#profile-setup) { display: none; }
+.profile-setup { max-width: 520px; width: 100%; margin: 24px auto; }
+.profile-form { display: grid; gap: 6px; margin-top: 10px; }
+.profile-form label, .profile-reset-field label { display: block; margin: 8px 0 4px; font-size: 12px; font-weight: 700; }
+.profile-form input, .profile-form select, .profile-reset-field input { width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid var(--ink); border-radius: 0; color: var(--ink); background: var(--paper); }
+.profile-summary { font: 13px var(--mono); overflow-wrap: anywhere; }
+.profile-reset-field { max-width: 320px; }
+.profile-change .message { margin-top: 4px; }
+.profile-card .card-title { margin-bottom: 6px; }

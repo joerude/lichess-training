@@ -1,9 +1,9 @@
 import { formatDay } from './page.js';
+import { formatClock } from './time-zone.js';
 
 const labels = { bullet: 'Bullet', blitz: 'Blitz', rapid: 'Rapid', puzzles: 'Задачи', reviews: 'Разбор' };
 const targetIds = Object.keys(labels);
-const timeFormat = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Asia/Bishkek', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-const loadedAt = (value) => timeFormat.format(new Date(value));
+const loadedAt = formatClock;
 
 export function mountPractice({ client, setExternalBusy, compact = false, document: documentRef = globalThis.document }) {
   const element = (id) => documentRef.getElementById(id);

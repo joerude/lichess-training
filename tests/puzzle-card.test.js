@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { setTimeZone, systemTimeZone } from '../extension/ui/time-zone.js';
 import { puzzlePhrase, formatClock, mountPuzzleCard, createPuzzleReader } from '../extension/ui/puzzle-card.js';
 
 function fixture(request, extras = {}) {
@@ -40,8 +41,20 @@ test('phrases follow progress for targets 1, 10 and 11', () => {
   assert.equal(phrase(13, 10, 'no-permission', false), 'Автоподсчёт выключен: подключите Lichess на основном экране');
 });
 
-test('clock times are shown in Bishkek time', () => {
+test.afterEach(() => setTimeZone(systemTimeZone()));
+
+test('clock times are shown in the time zone of the profile', () => {
+  setTimeZone('Asia/Bishkek');
   assert.equal(formatClock('2026-10-12T03:14:00.000Z'), '09:14');
+  setTimeZone('America/New_York');
+  assert.equal(formatClock('2026-10-12T03:14:00.000Z'), '23:14');
+});
+
+test('the card writes the start of the count in the time zone of the profile', async () => {
+  setTimeZone('America/New_York');
+  const f = fixture(async () => reading());
+  await f.card.refresh();
+  assert.equal(f.node('puzzle-meta').textContent, 'счёт с 23:14 · обновлено 00:02');
 });
 
 test('the card shows 4 / 10 with a bar, phrase and times', async () => {

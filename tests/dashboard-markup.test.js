@@ -20,7 +20,7 @@ test('label for, aria-describedby and aria-labelledby point at elements that exi
 
 test('every id the main screen scripts read is in the markup', async () => {
   const wanted = new Set(['sync-bullet', 'sync-blitz', 'sync-rapid', ...['bullet', 'blitz', 'rapid', 'puzzles', 'reviews'].map((id) => `goal-${id}`)]);
-  for (const name of ['dashboard.js', 'page.js', 'practice.js', 'history.js', 'history-view.js', 'sync.js']) {
+  for (const name of ['dashboard.js', 'page.js', 'practice.js', 'history.js', 'history-view.js', 'sync.js', 'profile.js']) {
     const source = await read(name);
     for (const match of source.matchAll(/(?:getElementById|element|find)\('([^']+)'\)/g)) wanted.add(match[1]);
     for (const match of source.matchAll(/querySelector\('#([\w-]+)/g)) wanted.add(match[1]);

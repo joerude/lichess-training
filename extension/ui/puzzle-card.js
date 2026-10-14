@@ -1,10 +1,7 @@
 import { puzzleNoun } from './page.js';
+import { formatClock } from './time-zone.js';
 
-const clock = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bishkek' });
-
-export function formatClock(iso) {
-  return clock.format(new Date(iso));
-}
+export { formatClock };
 
 export function puzzlePhrase({ solved, target, status, completed }) {
   if (status === 'no-permission') return 'Автоподсчёт выключен: подключите Lichess на основном экране';

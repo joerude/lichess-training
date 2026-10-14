@@ -4,19 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>Шахматный журнал · sebajun777</title>
+  <title>Шахматный журнал</title>
   <link rel="icon" href="../icons/training.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <script type="module" src="dashboard.js"></script>
 </head>
 <body>
-  <div class="dashboard-shell">
+  <div class="dashboard-shell awaiting-profile">
     <header class="app-header">
       <h1 class="brand"><img src="../icons/training.svg" width="28" height="28" alt=""><span>Шахматный журнал</span></h1>
-      <span id="username">sebajun777</span>
+      <span id="username">—</span>
       <button id="refresh" class="button button-quiet" type="button">Обновить</button>
     </header>
     <main>
+      <section id="profile-setup" class="card profile-setup" hidden></section>
       <div id="error" class="message message-error" role="alert" hidden></div>
       <p id="notice" class="message message-success" role="status" hidden></p>
       <div class="board-grid">
@@ -30,7 +31,7 @@
           <ol id="program-week" class="week-grid" aria-label="Все задания программы за семь дней"></ol>
         </section>
         <section id="today-card" class="card today-card" aria-labelledby="today-heading" aria-busy="true">
-          <div class="card-top"><div class="card-title"><h2 id="today-heading" class="label">Задачи на Lichess</h2><details class="hint"><summary aria-label="Подробнее">?</summary><div class="hint-body">Автоподсчёт по профилю Lichess или отметка вручную · День по времени Бишкека (UTC+6)</div></details></div><time id="today-date">Загрузка…</time></div>
+          <div class="card-top"><div class="card-title"><h2 id="today-heading" class="label">Задачи на Lichess</h2><details class="hint"><summary aria-label="Подробнее">?</summary><div class="hint-body">Автоподсчёт по профилю Lichess или отметка вручную · День — по часовому поясу вашего профиля</div></details></div><time id="today-date">Загрузка…</time></div>
           <p class="task-target"><span id="target">—</span> <span class="target-unit">задач</span></p>
           <p id="today-status" class="task-status" role="status">Загружаем ваш журнал…</p>
           <div class="task-actions"><a class="button button-primary" href="https://lichess.org/training" target="_blank" rel="noopener noreferrer">Открыть задачи <span aria-hidden="true">↗</span><span class="sr-only"> (в новой вкладке)</span></a><button id="completion" class="button button-secondary" type="button" aria-pressed="false" disabled>Отметить выполнение</button></div>
@@ -38,7 +39,7 @@
         </section>
       </div>
       <section id="sync-card" class="card sync-card" aria-labelledby="sync-heading" aria-busy="false">
-        <div class="card-top"><div class="card-title"><h2 id="sync-heading" class="label">Партии с Lichess</h2><details class="hint"><summary aria-label="Подробнее">?</summary><div class="hint-body">Партии за сегодня из загруженной истории · время Бишкека. Завершённые rated standard партии учитываются в ежедневной программе; награда выдаётся за достижение нормы.</div></details></div><time id="sync-date">Загрузка…</time></div>
+        <div class="card-top"><div class="card-title"><h2 id="sync-heading" class="label">Партии с Lichess</h2><details class="hint"><summary aria-label="Подробнее">?</summary><div class="hint-body">Партии за сегодня из загруженной истории · время вашего профиля. Завершённые rated standard партии учитываются в ежедневной программе; награда выдаётся за достижение нормы.</div></details></div><time id="sync-date">Загрузка…</time></div>
         <dl class="sync-counts" aria-label="Загруженные партии за сегодня">
           <div><dt>Bullet</dt><dd id="sync-bullet">—</dd></div>
           <div><dt>Blitz</dt><dd id="sync-blitz">—</dd></div>
@@ -48,7 +49,7 @@
         <p id="sync-retry" class="message sync-retry" role="status" hidden></p>
         <div id="sync-error" class="message message-error" role="alert" hidden></div>
         <p id="sync-notice" class="message message-success" role="status" hidden></p>
-        <div class="sync-actions"><button id="sync-run" class="button button-primary" type="button" aria-describedby="sync-permission-description">Подключить Lichess</button><details class="hint"><summary aria-label="Подробнее">?</summary><div id="sync-permission-description" class="hint-body">При подключении имя профиля sebajun777 передаётся Lichess для загрузки партий и чтения счётчика задач профиля. Журнал остаётся локальным. За один запуск загружается до пяти порций; остановка действует после сохранения текущей порции.</div></details><button id="sync-stop" class="button button-secondary" type="button" hidden>Остановить после текущей порции</button></div>
+        <div class="sync-actions"><button id="sync-run" class="button button-primary" type="button" aria-describedby="sync-permission-description">Подключить Lichess</button><details class="hint"><summary aria-label="Подробнее">?</summary><div id="sync-permission-description" class="hint-body">При подключении имя вашего профиля передаётся Lichess для загрузки партий и чтения счётчика задач профиля. Журнал остаётся локальным. За один запуск загружается до пяти порций; остановка действует после сохранения текущей порции.</div></details><button id="sync-stop" class="button button-secondary" type="button" hidden>Остановить после текущей порции</button></div>
         <details class="fold">
           <summary>Подробнее о загрузке</summary>
           <dl class="sync-metadata">
@@ -71,7 +72,7 @@
         <div id="history-chart" class="history-chart" aria-live="polite"><p class="muted history-chart-empty">График появится после загрузки истории.</p></div>
         <details class="fold history-import">
           <summary>Добавить историю из файлов</summary>
-          <p class="muted history-import-copy">Выберите выгрузку партий sebajun777 и, при наличии, историю рейтинга. Сначала проверьте файлы, затем подтвердите сохранение.</p>
+          <p class="muted history-import-copy">Выберите выгрузку своих партий и, при наличии, историю рейтинга. Сначала проверьте файлы, затем подтвердите сохранение.</p>
           <div class="history-file-grid">
             <div class="history-file-field"><label for="history-games-file">Партии · NDJSON</label><input id="history-games-file" type="file" accept=".ndjson,.jsonl,application/x-ndjson" aria-describedby="history-games-hint"><p id="history-games-hint" class="caption">games_raw.ndjson · до 20 МиБ</p></div>
             <div class="history-file-field"><label for="history-ratings-file">Рейтинг · JSON (необязательно)</label><input id="history-ratings-file" type="file" accept=".json,application/json" aria-describedby="history-ratings-hint"><p id="history-ratings-hint" class="caption">rating_history.json · до 1 МиБ</p><button id="history-clear-ratings" class="button button-quiet" type="button" disabled>Убрать файл рейтингов</button></div>
@@ -117,8 +118,19 @@
         <div class="card-title"><h2 id="backup-heading" class="label">Копия программы и разборов</h2><details class="hint"><summary aria-label="Подробнее">?</summary><div class="hint-body">Сохраните нормы, разборы, награды и отметки задач, чтобы перенести или восстановить их в Firefox. Историю партий можно снова импортировать из исходных файлов; она не входит в эту копию.</div></details></div>
         <div class="backup-actions"><button id="export" class="button button-secondary" type="button" data-write-control disabled>Скачать JSON</button><button id="restore" class="button button-quiet" type="button" data-write-control disabled>Восстановить из файла</button><input id="backup-file" type="file" accept=".json,application/json" hidden></div>
       </section>
+      <section class="card profile-card" aria-labelledby="profile-heading">
+        <div class="card-title"><h2 id="profile-heading" class="label">Профиль</h2></div>
+        <p id="profile-summary" class="profile-summary">Логин: — · Часовой пояс: —</p>
+        <details class="fold profile-change">
+          <summary>Сменить профиль</summary>
+          <p class="message message-error">Смена профиля удалит все локальные данные: отметки, программу, разборы, награды, партии и рейтинги. Сначала нажмите «Скачать JSON» в разделе выше, если хотите их сохранить.</p>
+          <div class="profile-reset-field"><label for="profile-reset-word">Введите слово «удалить»</label><input id="profile-reset-word" type="text" autocomplete="off" spellcheck="false" aria-describedby="profile-reset-error"></div>
+          <p id="profile-reset-error" class="message message-error" role="alert" hidden></p>
+          <div class="form-actions"><button id="profile-reset" class="button button-secondary" type="button">Удалить данные и сменить профиль</button></div>
+        </details>
+      </section>
     </main>
-    <footer class="app-footer"><span>sebajun777 · Личная шахматная практика</span><span>Журнал хранится в браузере</span></footer>
+    <footer class="app-footer"><span>Личная шахматная практика</span><span>Журнал хранится в браузере</span></footer>
   </div>
   <dialog id="restore-dialog" class="restore-dialog" aria-labelledby="restore-heading" aria-describedby="restore-description"><div class="dialog-body"><h2 id="restore-heading">Проверьте резервную копию</h2><p id="restore-description" class="muted">Текущие отметки тренировок будут полностью заменены. Сначала скачайте их копию, если хотите сохранить обе версии. История партий сохраняется.</p><dl id="backup-preview" class="backup-preview"></dl><p class="caption">Файл проверен без сохранения. Замена произойдёт только после подтверждения и успешного сохранения.</p><p id="restore-error" class="message message-error" role="alert" hidden></p><div class="dialog-actions"><button id="cancel-restore" class="button button-secondary" type="button">Отмена</button><button id="replace" class="button button-primary" type="button">Восстановить копию</button></div></div></dialog>
 </body>

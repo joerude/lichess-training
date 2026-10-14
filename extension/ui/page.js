@@ -1,3 +1,4 @@
+import { currentTimeZone, setTimeZone } from './time-zone.js';
 import { createClient, createTrainingController, nextDayDelay } from './client.js';
 
 export function formatDay(day, options = { day: 'numeric', month: 'long' }) {
@@ -70,7 +71,7 @@ export function mountTrainingPage(renderExtra = () => {}) {
   }
   function scheduleBoundary() {
     clearTimeout(timer);
-    const timeZone = snapshot?.profile.timeZone || 'Asia/Bishkek';
+    const timeZone = snapshot?.profile.timeZone || currentTimeZone();
     timer = setTimeout(async () => {
       await controller.refresh();
       scheduleBoundary();
@@ -83,6 +84,7 @@ export function mountTrainingPage(renderExtra = () => {}) {
     showSuccess,
     render(value) {
       snapshot = value;
+      setTimeZone(value.profile.timeZone);
       feedback.recoveredSnapshot();
       document.getElementById('username').textContent = value.profile.username;
       const date = document.getElementById('today-date');
